@@ -1,6 +1,17 @@
 #TODO
-figure out what we need (netUtils to send & receive, dbms to store stuff)
+figure out what we need (netUtils to send & receive, dbms to store stuff?)
+
 define server error codes
+
+client receiving thread (server-like)
+
+client commands
+
+server functions
+
+data structures to store clients (list of clients, reuse dbms?)
+
+tests
 
 #Cleanup
 
