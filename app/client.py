@@ -40,20 +40,17 @@ class client:
         err_code = netUtils.receive_err_code(sock)
         # close the socket
         sock.close()
-        # return the corresponding error
-        if err_code == 0:
+        # print the corresponding error message
+        if err_code == client.RC.OK:
             print("REGISTER OK")
-            return client.RC.OK
-        elif err_code == 1:
+        elif err_code == client.RC.USER_ERROR:
             print("USERNAME IN USE")
-            return client.RC.USER_ERROR
-        else:
+        elif err_code == client.RC.ERROR:
             print("REGISTRATION FAIL")
-            return client.RC.ERROR
 
     # *
     # 	 * @param user - User name to unregister from the system
-    # 	 * 
+    # 	 *
     # 	 * @return OK if successful
     # 	 * @return USER_ERROR if the user does not exist
     # 	 * @return ERROR if another error occurred
@@ -72,20 +69,17 @@ class client:
         err_code = netUtils.receive_err_code(sock)
         # close the socket
         sock.close()
-        # return the corresponding error
-        if err_code == 0:
+        # print the corresponding error message
+        if err_code == client.RC.OK:
             print("UNREGISTER OK")
-            return client.RC.OK
-        elif err_code == 1:
+        elif err_code == client.RC.USER_ERROR:
             print("USER DOES NOT EXIST")
-            return client.RC.USER_ERROR
-        else:
+        elif err_code == client.RC.ERROR:
             print("UNREGISTER FAIL")
-            return client.RC.ERROR
 
     # *
     # * @param user - User name to connect to the system
-    # * 
+    # *
     # * @return OK if successful
     # * @return USER_ERROR if the user does not exist or if it is already connected
     # * @return ERROR if another error occurred
@@ -105,22 +99,19 @@ class client:
         err_code = netUtils.receive_err_code(sock)
         # close the socket
         sock.close()
-        # return the corresponding error
-        if err_code == 0:
+        # print the corresponding error message
+        if err_code == client.RC.OK:
             print("CONNECT OK")
-            return client.RC.OK
-        elif err_code == 1:
+        elif err_code == client.RC.ERROR:
             print("USER ALREADY CONNECTED")
-            return client.RC.ERROR
-        elif err_code == 2:
+        elif err_code == client.RC.USER_ERROR:
             print("CONNECT FAIL, USER DOES NOT EXIST")
-            return client.RC.USER_ERROR
         else:
             print("CONNECT FAIL")
-            return 3
+
     # *
     # * @param user - User name to disconnect from the system
-    # * 
+    # *
     # * @return OK if successful
     # * @return USER_ERROR if the user does not exist
     # * @return ERROR if another error occurred
@@ -139,27 +130,24 @@ class client:
         err_code = netUtils.receive_err_code(sock)
         # close the socket
         sock.close()
-        # return the corresponding error
-        if err_code == 0:
+        # print the corresponding error message
+        if err_code == client.RC.OK:
             print("DISCONNECT OK")
-            return client.RC.OK
-        elif err_code == 1:
+        elif err_code == client.RC.USER_ERROR:
             print("DISCONNECT FAIL: USER DOES NOT EXIST")
-            return client.RC.USER_ERROR
-        elif err_code == 2:
+        elif err_code == client.RC.ERROR:
             print("DISCONNECT FAIL: USER NOT CONNECTED")
-            return client.RC.ERROR
         else:
             print("DISCONNECT FAIL")
-            return 3
 
     # *
     # * @param user    - Receiver user name
     # * @param message - Message to be sent
-    # * 
+    # *
     # * @return OK if the server had successfully delivered the message
     # * @return USER_ERROR if the user is not connected (the message is queued for delivery)
     # * @return ERROR the user does not exist or another error occurred
+
     @staticmethod
     def send(user, message, recipient):
         # first, we create the request
@@ -170,7 +158,7 @@ class client:
         request.item._recipient_username = str(recipient)
         if len(message) > 255:
             print("ERROR, MESSAGE TOO LONG")
-            return client.RC.USER_ERROR
+
         request.item._message = str(message)
         # now, we connect to the socket
         sock = netUtils.connect_socket(server_address=(client._server, client._port))
@@ -180,19 +168,19 @@ class client:
         err_code = netUtils.receive_err_code(sock)
         # close the socket
         sock.close()
-        # return the corresponding error
-        if err_code == 0:
+        # print the corresponding error message
+        if err_code == client.RC.OK:
+            # in case of success, return the corresponding message id
+            message_id = netUtils.receive_message_id(sock)
             print("SEND OK")
-            return client.RC.OK
-        elif err_code == 1:
+            return message_id
+        elif err_code == client.RC.ERROR:
             print("SEND FAIL, USER DOES NOT EXIST")
-            return client.RC.ERROR
-        elif err_code == 2:
+        elif err_code == client.RC.USER_ERROR:
             print("SEND FAIL, USER NOT CONNECTED")
-            return client.RC.USER_ERROR
         else:
             print("SEND FAIL")
-            return client.RC.ERROR
+
 
     # *
     # * @param user    - Receiver user name

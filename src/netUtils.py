@@ -1,9 +1,7 @@
 """Module containing the definition of the functions that will be in charge of sending data
 to server socket, as well as connecting to the socket"""
 
-# ******************** IMPORTS *********************
-import utils
-import client
+# ******************** IMPORTS ***********************
 import socket
 
 
@@ -58,6 +56,15 @@ def receive_err_code(sock):
     return err_code
 
 
+def receive_message_id(sock):
+    """Function in charge of receiving the message_id"""
+    message_id = ''
+    while True:
+        msg = sock.recv(1)
+        if msg == b'\0':
+            break
+    message_id += msg.decode()
+    return message_id
 
 
 
