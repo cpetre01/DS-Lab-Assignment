@@ -1,12 +1,15 @@
+import socket
 from enum import Enum
 import argparse
+import utils
+import netUtils
 
-class client :
 
+class client:
     # ******************** TYPES *********************
     # *
     # * @brief Return codes for the protocol methods
-    class RC(Enum) :
+    class RC(Enum):
         OK = 0
         ERROR = 1
         USER_ERROR = 2
@@ -23,9 +26,30 @@ class client :
     # * @return USER_ERROR if the user is already registered
     # * @return ERROR if another error occurred
     @staticmethod
-    def  register(user) :
-        #  Write your code here
-        return client.RC.ERROR
+    def register(user):
+        # first, we create the request
+        request = utils.Request()
+        # fill up the request
+        request.header._op_code = utils.REGISTER
+        request.header._username = str(user)
+        # now, we connect to the socket
+        sock = netUtils.connect_socket(server_address=(client._server, client._port))
+        # and send te registration request
+        netUtils.send_header(sock, request)
+        # receive server reply (error code)
+        err_code = netUtils.receive_err_code(sock)
+        # close the socket
+        sock.close()
+        # return the corresponding error
+        if err_code == 0:
+            print("REGISTER OK")
+            return client.RC.OK
+        elif err_code == 1:
+            print("USERNAME IN USE")
+            return client.RC.USER_ERROR
+        else:
+            print("REGISTRATION FAIL")
+            return client.RC.ERROR
 
     # *
     # 	 * @param user - User name to unregister from the system
@@ -34,10 +58,30 @@ class client :
     # 	 * @return USER_ERROR if the user does not exist
     # 	 * @return ERROR if another error occurred
     @staticmethod
-    def  unregister(user) :
-        #  Write your code here
-        return client.RC.ERROR
-
+    def unregister(user):
+        # first, we create the request
+        request = utils.Request()
+        # fill up the request
+        request.header._op_code = utils.UNREGISTER
+        request.header._username = str(user)
+        # now, we connect to the socket
+        sock = netUtils.connect_socket(server_address=(client._server, client._port))
+        # and send te registration request
+        netUtils.send_header(sock, request)
+        # receive server reply (error code)
+        err_code = netUtils.receive_err_code(sock)
+        # close the socket
+        sock.close()
+        # return the corresponding error
+        if err_code == 0:
+            print("UNREGISTER OK")
+            return client.RC.OK
+        elif err_code == 1:
+            print("USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        else:
+            print("UNREGISTER FAIL")
+            return client.RC.ERROR
 
     # *
     # * @param user - User name to connect to the system
@@ -46,11 +90,34 @@ class client :
     # * @return USER_ERROR if the user does not exist or if it is already connected
     # * @return ERROR if another error occurred
     @staticmethod
-    def  connect(user) :
-        #  Write your code here
-        return client.RC.ERROR
-
-
+    def connect(user):
+        # first, we create the request
+        request = utils.Request()
+        # fill up the request
+        request.header._op_code = utils.CONNECT
+        request.header._username = str(user)
+        request.item._destination_port = str(client._port)
+        # now, we connect to the socket
+        sock = netUtils.connect_socket(server_address=(client._server, client._port))
+        # and send te connection request
+        netUtils.send_connection_request(sock, request)
+        # receive server reply (error code)
+        err_code = netUtils.receive_err_code(sock)
+        # close the socket
+        sock.close()
+        # return the corresponding error
+        if err_code == 0:
+            print("CONNECT OK")
+            return client.RC.OK
+        elif err_code == 1:
+            print("USER ALREADY CONNECTED")
+            return client.RC.ERROR
+        elif err_code == 2:
+            print("CONNECT FAIL, USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        else:
+            print("CONNECT FAIL")
+            return 3
     # *
     # * @param user - User name to disconnect from the system
     # * 
@@ -58,9 +125,33 @@ class client :
     # * @return USER_ERROR if the user does not exist
     # * @return ERROR if another error occurred
     @staticmethod
-    def  disconnect(user) :
-        #  Write your code here
-        return client.RC.ERROR
+    def disconnect(user):
+        # first, we create the request
+        request = utils.Request()
+        # fill up the request
+        request.header._op_code = utils.DISCONNECT
+        request.header._username = str(user)
+        # now, we connect to the socket
+        sock = netUtils.connect_socket(server_address=(client._server, client._port))
+        # and send te registration request
+        netUtils.send_header(sock, request)
+        # receive server reply (error code)
+        err_code = netUtils.receive_err_code(sock)
+        # close the socket
+        sock.close()
+        # return the corresponding error
+        if err_code == 0:
+            print("DISCONNECT OK")
+            return client.RC.OK
+        elif err_code == 1:
+            print("DISCONNECT FAIL: USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        elif err_code == 2:
+            print("DISCONNECT FAIL: USER NOT CONNECTED")
+            return client.RC.ERROR
+        else:
+            print("DISCONNECT FAIL")
+            return 3
 
     # *
     # * @param user    - Receiver user name
@@ -70,9 +161,38 @@ class client :
     # * @return USER_ERROR if the user is not connected (the message is queued for delivery)
     # * @return ERROR the user does not exist or another error occurred
     @staticmethod
-    def  send(user,  message) :
-        #  Write your code here
-        return client.RC.ERROR
+    def send(user, message, recipient):
+        # first, we create the request
+        request = utils.Request()
+        # fill up the request
+        request.header._op_code = utils.SEND
+        request.header._username = str(user)
+        request.item._recipient_username = str(recipient)
+        if len(message) > 255:
+            print("ERROR, MESSAGE TOO LONG")
+            return client.RC.USER_ERROR
+        request.item._message = str(message)
+        # now, we connect to the socket
+        sock = netUtils.connect_socket(server_address=(client._server, client._port))
+        # and send te message request
+        netUtils.send_message_request(sock, request)
+        # receive server reply (error code)
+        err_code = netUtils.receive_err_code(sock)
+        # close the socket
+        sock.close()
+        # return the corresponding error
+        if err_code == 0:
+            print("SEND OK")
+            return client.RC.OK
+        elif err_code == 1:
+            print("SEND FAIL, USER DOES NOT EXIST")
+            return client.RC.ERROR
+        elif err_code == 2:
+            print("SEND FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        else:
+            print("SEND FAIL")
+            return client.RC.ERROR
 
     # *
     # * @param user    - Receiver user name
@@ -83,7 +203,7 @@ class client :
     # * @return USER_ERROR if the user is not connected (the message is queued for delivery)
     # * @return ERROR the user does not exist or another error occurred
     @staticmethod
-    def  sendAttach(user,  file,  message) :
+    def sendAttach(user, file, message):
         #  Write your code here
         return client.RC.ERROR
 
@@ -93,60 +213,60 @@ class client :
     @staticmethod
     def shell():
 
-        while (True) :
-            try :
+        while (True):
+            try:
                 command = input("c> ")
                 line = command.split(" ")
                 if (len(line) > 0):
 
                     line[0] = line[0].upper()
 
-                    if (line[0]=="REGISTER") :
-                        if (len(line) == 2) :
+                    if (line[0] == "REGISTER"):
+                        if (len(line) == 2):
                             client.register(line[1])
-                        else :
+                        else:
                             print("Syntax error. Usage: REGISTER <userName>")
 
-                    elif(line[0]=="UNREGISTER") :
-                        if (len(line) == 2) :
+                    elif (line[0] == "UNREGISTER"):
+                        if (len(line) == 2):
                             client.unregister(line[1])
-                        else :
+                        else:
                             print("Syntax error. Usage: UNREGISTER <userName>")
 
-                    elif(line[0]=="CONNECT") :
-                        if (len(line) == 2) :
+                    elif (line[0] == "CONNECT"):
+                        if (len(line) == 2):
                             client.connect(line[1])
-                        else :
+                        else:
                             print("Syntax error. Usage: CONNECT <userName>")
 
-                    elif(line[0]=="DISCONNECT") :
-                        if (len(line) == 2) :
+                    elif (line[0] == "DISCONNECT"):
+                        if (len(line) == 2):
                             client.disconnect(line[1])
-                        else :
+                        else:
                             print("Syntax error. Usage: DISCONNECT <userName>")
 
-                    elif(line[0]=="SEND") :
-                        if (len(line) >= 3) :
+                    elif (line[0] == "SEND"):
+                        if (len(line) >= 3):
                             #  Remove first two words
                             message = ' '.join(line[2:])
                             client.send(line[1], message)
-                        else :
+                        else:
                             print("Syntax error. Usage: SEND <userName> <message>")
 
-                    elif(line[0]=="SENDATTACH") :
-                        if (len(line) >= 4) :
+                    elif (line[0] == "SENDATTACH"):
+                        if (len(line) >= 4):
                             #  Remove first two words
                             message = ' '.join(line[3:])
                             client.sendAttach(line[1], line[2], message)
-                        else :
+                        else:
                             print("Syntax error. Usage: SENDATTACH <userName> <filename> <message>")
 
-                    elif(line[0]=="QUIT") :
-                        if (len(line) == 1) :
+                    elif (line[0] == "QUIT"):
+                        if (len(line) == 1):
                             break
-                        else :
+                        else:
                             print("Syntax error. Use: QUIT")
-                    else :
+                    else:
                         print("Error: command " + line[0] + " not valid.")
             except Exception as e:
                 print("Exception: " + str(e))
@@ -154,14 +274,13 @@ class client :
     # *
     # * @brief Prints program usage
     @staticmethod
-    def usage() :
+    def usage():
         print("Usage: python3 client.py -s <server> -p <port>")
-
 
     # *
     # * @brief Parses program execution arguments
     @staticmethod
-    def  parseArguments(argv) :
+    def parseArguments(argv):
         parser = argparse.ArgumentParser()
         parser.add_argument('-s', type=str, required=True, help='Server IP')
         parser.add_argument('-p', type=int, required=True, help='Server Port')
@@ -174,24 +293,23 @@ class client :
         if ((args.p < 1024) or (args.p > 65535)):
             parser.error("Error: Port must be in the range 1024 <= port <= 65535");
             return False;
-        
-        _server = args.s
-        _port = args.p
+
+        client._server = args.s
+        client._port = args.p
 
         return True
 
-
     # ******************** MAIN *********************
     @staticmethod
-    def main(argv) :
-        if (not client.parseArguments(argv)) :
+    def main(argv):
+        if (not client.parseArguments(argv)):
             client.usage()
             return
 
         #  Write code here
         client.shell()
         print("+++ FINISHED +++")
-    
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     client.main([])
