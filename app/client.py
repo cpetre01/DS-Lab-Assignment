@@ -1,8 +1,8 @@
 import socket
 from enum import Enum
 import argparse
-import utils
-import netUtils
+from src import netUtils
+from src import utils
 
 
 class client:
@@ -37,7 +37,7 @@ class client:
         # and send te registration request
         netUtils.send_header(sock, request)
         # receive server reply (error code)
-        err_code = netUtils.receive_err_code(sock)
+        err_code = netUtils.receive_server_response(sock)
         # close the socket
         sock.close()
         # print the corresponding error message
@@ -66,7 +66,7 @@ class client:
         # and send te registration request
         netUtils.send_header(sock, request)
         # receive server reply (error code)
-        err_code = netUtils.receive_err_code(sock)
+        err_code = netUtils.receive_server_response(sock)
         # close the socket
         sock.close()
         # print the corresponding error message
@@ -96,7 +96,7 @@ class client:
         # and send te connection request
         netUtils.send_connection_request(sock, request)
         # receive server reply (error code)
-        err_code = netUtils.receive_err_code(sock)
+        err_code = netUtils.receive_server_response(sock)
         # close the socket
         sock.close()
         # print the corresponding error message
@@ -127,7 +127,7 @@ class client:
         # and send te registration request
         netUtils.send_header(sock, request)
         # receive server reply (error code)
-        err_code = netUtils.receive_err_code(sock)
+        err_code = netUtils.receive_server_response(sock)
         # close the socket
         sock.close()
         # print the corresponding error message
@@ -165,13 +165,13 @@ class client:
         # and send te message request
         netUtils.send_message_request(sock, request)
         # receive server reply (error code)
-        err_code = netUtils.receive_err_code(sock)
+        err_code = netUtils.receive_server_response(sock)
         # close the socket
         sock.close()
         # print the corresponding error message
         if err_code == client.RC.OK:
             # in case of success, return the corresponding message id
-            message_id = netUtils.receive_message_id(sock)
+            message_id = netUtils.receive_server_response(sock)
             print("SEND OK")
             return message_id
         elif err_code == client.RC.ERROR:
@@ -280,7 +280,7 @@ class client:
 
         if ((args.p < 1024) or (args.p > 65535)):
             parser.error("Error: Port must be in the range 1024 <= port <= 65535");
-            return False;
+            return False
 
         client._server = args.s
         client._port = args.p
