@@ -1,8 +1,11 @@
 import socket
+import threading
+import sys
+# adding src to the system path
+sys.path.append('/home/gbh/PycharmProjects/DS-Lab-Assignment')
 from enum import Enum
 import argparse
-from src import netUtils
-from src import utils
+from src import netUtils, utils
 
 
 class client:
@@ -181,7 +184,6 @@ class client:
         else:
             print("SEND FAIL")
 
-
     # *
     # * @param user    - Receiver user name
     # * @param file    - file  to be sent
@@ -294,8 +296,11 @@ class client:
             client.usage()
             return
 
-        #  Write code here
-        client.shell()
+        # first, we create threads
+        sending_thread = threading.Thread(client.shell())
+
+
+
         print("+++ FINISHED +++")
 
 
