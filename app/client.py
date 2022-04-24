@@ -1,12 +1,15 @@
+from importlib.resources import path
 import socket
 import threading
 import sys
+from tkinter import CURRENT
 # adding src to the system path
-sys.path.append('/home/gbh/PycharmProjects/DS-Lab-Assignment')
+sys.path.append('/Users/Diana/PycharmProjects/DS-Lab-Assignment')
 from enum import Enum
 import argparse
 from src import netUtils, utils
 
+CURRENT_USER = None
 
 class client:
     # ******************** TYPES *********************
@@ -104,6 +107,7 @@ class client:
         sock.close()
         # print the corresponding error message
         if err_code == client.RC.OK:
+            CURRENT_USER = str(user)
             print("CONNECT OK")
         elif err_code == client.RC.ERROR:
             print("USER ALREADY CONNECTED")
@@ -135,6 +139,7 @@ class client:
         sock.close()
         # print the corresponding error message
         if err_code == client.RC.OK:
+            CURRENT_USER = None
             print("DISCONNECT OK")
         elif err_code == client.RC.USER_ERROR:
             print("DISCONNECT FAIL: USER DOES NOT EXIST")
@@ -152,12 +157,12 @@ class client:
     # * @return ERROR the user does not exist or another error occurred
 
     @staticmethod
-    def send(user, message, recipient):
+    def send(recipient, message):
         # first, we create the request
         request = utils.Request()
         # fill up the request
         request.header._op_code = utils.SEND
-        request.header._username = str(user)
+        request.header._username = CURRENT_USER
         request.item._recipient_username = str(recipient)
         if len(message) > 255:
             print("ERROR, MESSAGE TOO LONG")
