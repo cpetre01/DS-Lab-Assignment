@@ -59,8 +59,8 @@ int str_to_num(const char *value_str, void *value, const char type) {
 
 /* file & socket stuff */
 
-int send_msg(const int d, char *buffer, const int len) {
-    /* sends a message of len bytes to d (socket, file... descriptor) */
+int send_msg(const int d, const char *buffer, const int len) {
+    /* sends a content of len bytes to d (socket, file... descriptor) */
     ssize_t bytes_sent;         /* number of bytes written by last write() */
     ssize_t bytes_left = len;   /* number of bytes left to be received */
 
@@ -76,7 +76,7 @@ int send_msg(const int d, char *buffer, const int len) {
 
 
 int recv_msg(const int d, char *buffer, const int len) {
-    /* receives a message of len bytes from d (socket, file... descriptor) */
+    /* receives a content of len bytes from d (socket, file... descriptor) */
     ssize_t bytes_received;     /* number of bytes fetched by last read() */
     ssize_t bytes_left = len;   /* number of bytes left to be received */
 

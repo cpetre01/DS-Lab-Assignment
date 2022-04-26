@@ -4,8 +4,7 @@
 add_executable(${TARGET_SERVER})
 target_sources(${TARGET_SERVER} PRIVATE server.c)
 target_link_libraries(${TARGET_SERVER}
-        PRIVATE rt
-                pthread
+        PRIVATE pthread
                 ${TARGET_NET_UTILS}
                 ${TARGET_DBMS}
         )

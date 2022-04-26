@@ -1,5 +1,5 @@
 #TODO
-figure out what we need (netUtils to send & receive, dbms to store stuff?)
+tweak dbms to store stuff
 
 define server error codes
 
@@ -9,7 +9,7 @@ client commands
 
 server functions
 
-data structures to store clients (list of clients, reuse dbms?)
+data structures to store clients (list of clients, reuse dbms)
 
 tests
 

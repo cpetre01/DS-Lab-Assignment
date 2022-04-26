@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -22,7 +23,6 @@ void get_item(request_t *request, reply_t *reply);
 void modify_item(request_t *request, reply_t *reply);
 void delete_item(request_t *request, reply_t *reply);
 void item_exists(request_t *request, reply_t *reply);
-void get_num_items(reply_t *reply);
 
 
 /* connection queue */
@@ -52,7 +52,7 @@ void set_server_error_code_std(reply_t *reply, const int req_error_code) {
 }
 
 
-void * service_thread(void *args) {
+void *service_thread(void *args) {
     while (TRUE) {
         int client_socket;
         /* copy client socket descriptor and free the original */
@@ -73,13 +73,16 @@ void * service_thread(void *args) {
 
         /* handle connection now */
         request_t request;
-        /* receive transaction ID & op_code */
-        if (recv_common_header(client_socket, &request.header) == -1) continue;
+        /* receive op_code */
+        if (recv_string(client_socket, request.op_code) == -1) continue;
 
         /* set up server reply */
         reply_t reply;
-        reply.header.id = request.header.id;
-        reply.header.op_code = request.header.op_code;
+
+        if (!strcmp(request.op_code, REGISTER) || !strcmp(request.op_code, UNREGISTER) ||
+        !strcmp(request.op_code, CONNECT) || !strcmp(request.op_code, DISCONNECT)) {
+            if (recv_string(client_socket, request.username) == -1) continue;
+        }
 
         /* check whether client request is valid and execute it */
         switch (request.header.op_code) {
@@ -88,7 +91,7 @@ void * service_thread(void *args) {
                 init_db(&reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1) continue;
+                if (send_server_reply(client_socket, &reply) == -1) continue;
                 break;
             case SET_VALUE:
                 /* receive rest of client request */
@@ -99,7 +102,7 @@ void * service_thread(void *args) {
                 insert_item(&request, &reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1) continue;
+                if (send_server_reply(client_socket, &reply) == -1) continue;
                 break;
             case GET_VALUE:
                 /* receive rest of client request */
@@ -109,7 +112,7 @@ void * service_thread(void *args) {
                 get_item(&request, &reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1 ||
+                if (send_server_reply(client_socket, &reply) == -1 ||
                         send_values(client_socket, &reply.item) == -1) continue;
                 break;
             case MODIFY_VALUE:
@@ -121,7 +124,7 @@ void * service_thread(void *args) {
                 modify_item(&request, &reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1) continue;
+                if (send_server_reply(client_socket, &reply) == -1) continue;
                 break;
             case DELETE_KEY:
                 /* receive rest of client request */
@@ -131,7 +134,7 @@ void * service_thread(void *args) {
                 delete_item(&request, &reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1) continue;
+                if (send_server_reply(client_socket, &reply) == -1) continue;
                 break;
             case EXIST:
                 /* receive rest of client request */
@@ -141,14 +144,14 @@ void * service_thread(void *args) {
                 item_exists(&request, &reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1) continue;
+                if (send_server_reply(client_socket, &reply) == -1) continue;
                 break;
             case NUM_ITEMS:
                 /* execute client request */
                 get_num_items(&reply);
 
                 /* send server reply */
-                if (send_reply_header(client_socket, &reply) == -1 ||
+                if (send_server_reply(client_socket, &reply) == -1 ||
                 send_num_items(client_socket, &reply) == -1) continue;
                 break;
             default:    /* invalid operation */
@@ -241,23 +244,6 @@ void item_exists(request_t *request, reply_t *reply) {
         case 1: reply->server_error_code = SRV_EXISTS; break;
         case 0: reply->server_error_code = SRV_NOT_EXISTS; break;
         default: break;
-    }
-}
-
-
-void get_num_items(reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int num_items = db_get_num_items();
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    if (num_items == -1) reply->server_error_code = SRV_ERROR;
-    else {
-        reply->server_error_code = SRV_SUCCESS;
-        reply->num_items = num_items;
     }
 }
 
