@@ -8,9 +8,9 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <signal.h>
-#include "DS-MandatoryExercise/utils.h"
-#include "DS-MandatoryExercise/netUtils.h"
-#include "DS-MandatoryExercise/dbms/dbms.h"
+#include "DS-Lab-Assignment/utils.h"
+#include "DS-Lab-Assignment/netUtils.h"
+#include "DS-Lab-Assignment/dbms/dbms.h"
 
 /* prototypes */
 void *service_thread(void *args);

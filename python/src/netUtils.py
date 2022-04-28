@@ -6,7 +6,7 @@ import socket
 
 
 # ******************** FUNCTIONS *********************
-def connect_socket(server_address):
+def connect_socket(server_address: tuple):
     """Function in charge of connecting to the server socket"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print('connecting to {} port {}'.format(*server_address))
@@ -54,7 +54,3 @@ def receive_server_response(sock):
             break
     err_code += msg.decode()
     return err_code
-
-
-
-

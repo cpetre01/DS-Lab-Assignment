@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "DS-MandatoryExercise/utils.h"
-#include "DS-MandatoryExercise/netUtils.h"
+#include "DS-Lab-Assignment/utils.h"
+#include "DS-Lab-Assignment/netUtils.h"
 
 
 int send_server_reply(const int socket, reply_t *reply) {

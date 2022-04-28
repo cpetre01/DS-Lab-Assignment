@@ -1,4 +1,6 @@
 .idea
-/build*
+build*
 extern
 cmake*
+venv
+*__pycache__
