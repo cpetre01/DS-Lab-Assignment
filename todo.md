@@ -9,7 +9,7 @@ client commands
 
 server functions
 
-data structures to store clients (list of clients, reuse dbms)
+data structures to store clients (list of clients, reuse dbms?)
 
 tests
 
