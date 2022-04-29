@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
     int val = 1;
 
     if (argc != 2) {
-        fprintf(stderr, "Usage server <PORT>\n"); return -1;
+        fprintf(stderr, "Usage: server -p <port>\n"); return -1;
     }
 
     int server_port;
@@ -309,7 +309,7 @@ int main(int argc, char **argv) {
         perror("Server socket binding error"); return -1;
     }
 
-    if (listen(server_sd, MAX_CONN_BACKLOG) == -1) {
+    if (listen(server_sd, LISTEN_BACKLOG) == -1) {
         perror("Server listen error"); return -1;
     }
 
@@ -318,9 +318,14 @@ int main(int argc, char **argv) {
         pthread_create(&thread_pool[i], &th_attr, service_thread, NULL);
     }
 
+    /* get local IP address to print initial server log message */
+    if (getsockname(server_sd, (struct sockaddr *) &server_addr, (socklen_t *) sizeof server_addr) == -1) {
+        perror("Server get local IP address error"); return -1;
+    }
+    printf("s> ");
+    printf("init server %ui:%i\n", server_addr.sin_addr.s_addr, server_port);
     while (TRUE) {
-        printf("Press Ctrl + C to shut down server\n");
-        printf("Waiting for connections...\n");
+//        printf("Waiting for connections...\n");
 
         client_sd = accept(server_sd, (struct sockaddr *) &client_addr, &addr_size);
         if (client_sd == -1) {

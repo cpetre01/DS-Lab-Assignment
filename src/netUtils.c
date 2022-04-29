@@ -36,29 +36,3 @@ int recv_string(const int socket, char *string) {
 
     return 0;
 }
-/*register, unregister, disconnect*/
-//receive op_code
-//receive username
-
-/*connect*/
-//receive op_code
-//receive username
-//receive port
-
-/*send*/
-//receive op_code
-//receive sender username
-//receive receiver username
-//receive content
-
-/*content passing from server to client*/
-
-/*send content to receiver*/
-//send op_code
-//send sender username
-//send content ID
-//send content
-
-/*send ack to sender*/
-//send op_code
-//send content ID

@@ -22,11 +22,31 @@
 #define SEND_MESS_ACK "SEND_MESS_ACK"
 
 /* server error codes */
-//WIP
 #define SRV_SUCCESS 0
-#define SRV_ERROR 1
 
-/* DB key file opening modes */
+/* register */
+#define SRV_ERR_REG_USR_ALREADY_REG 1
+#define SRV_ERR_REG_ANY 2
+
+/* unregister */
+#define SRV_ERR_UNREG_USR_NOT_EXISTS 1
+#define SRV_ERR_UNREG_ANY 2
+
+/* connect */
+#define SRV_ERR_CN_USR_NOT_EXISTS 1
+#define SRV_ERR_CN_USR_ALREADY_CN 2
+#define SRV_ERR_CN_ANY 3
+
+/* disconnect */
+#define SRV_ERR_DCN_USR_NOT_EXISTS 1
+#define SRV_ERR_DCN_USR_NOT_CN 2
+#define SRV_ERR_DCN_ANY 3
+
+/* send */
+#define SRV_ERR_SEND_USR_NOT_EXISTS 1
+#define SRV_ERR_SEND_ANY 2
+
+/* DB file opening modes */
 #define READ 'r'
 #define CREATE 'c'
 #define MODIFY 'm'
@@ -72,3 +92,32 @@ typedef struct {
 } reply_t;
 
 #endif //UTILS_H
+
+/*register, unregister, disconnect*/
+//receive op_code
+//receive username
+
+/*connect*/
+//receive op_code
+//receive username
+//receive port
+
+/*send*/
+//receive op_code
+//receive sender username
+//receive receiver username
+//receive message ID
+//receive message content
+//send message ID to sender client (first ACK: server got the message)
+
+/*content passing from server to client*/
+
+/*send content to receiver*/
+//send op_code
+//send sender username
+//send message ID
+//send message content
+
+/*send second ack to sender (message got delivered)*/
+//send op_code
+//send message ID
