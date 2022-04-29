@@ -1,11 +1,23 @@
 # DS-Lab-Assignment
 Repo used for Lab Assignment in Distributed Systems
 
-C server, Python client
+    client side written in Python3, server side written in C11
 
 Project Structure:
 
-    app: source code for server executable
+    app: source code for server executable and client script
+
+        client: client source code (Python)
+    
+            src: library source code and auxiliary source files
+    
+                netUtils.py: source code for netUtils library; Python network API
+            
+                utils.py: constants and classes used on the client side; useful stuff
+
+            client.py: client script source code
+
+        server.c: server source code
 
     build: directory used to build the project; create it if it doesn't exist
 
@@ -20,17 +32,6 @@ Project Structure:
         netUtils.h: header for netUtils library; contains function prototypes used to send and receive stuff; server-side network API
 
         utils.h: types, constants and function prototypes used on the server side; useful stuff
-
-    python: Python source code (client)
-
-        app: source code for client app
-
-        src: library source code and auxiliary source files
-
-            netUtils.py: source code for netUtils library; Python network API
-        
-            utils.py: constants and classes used on the client side; useful stuff
-
 
     src: library source code and auxiliary source files
 

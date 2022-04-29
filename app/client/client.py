@@ -1,26 +1,10 @@
 import argparse
-import sys
-import os
 import socket
 import threading
 from importlib.resources import path
 from tkinter import CURRENT
 from enum import Enum
-
-# adding python package to the system path
-# (we might be able to move this somewhere else with CMake)
-PROJECT_NAME = "DS-Lab-Assignment"
-# get the path of this file
-CURRENT_FILE_PATH = os.path.realpath(__file__)
-
-# get the index of the last character of this path that is also part of the project root path
-path_end = CURRENT_FILE_PATH.find(PROJECT_NAME) + len(PROJECT_NAME)
-
-# prune the path, so it becomes the project root path, and add it to the system path
-PROJECT_ROOT_PATH = CURRENT_FILE_PATH[:path_end]
-sys.path.append(PROJECT_ROOT_PATH)
-
-from python.src import netUtils, utils
+from src import netUtils, utils
 
 
 class Client:
