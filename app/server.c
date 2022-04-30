@@ -11,18 +11,11 @@
 #include "DS-Lab-Assignment/utils.h"
 #include "DS-Lab-Assignment/netUtils.h"
 #include "DS-Lab-Assignment/dbms/dbms.h"
+#include "DS-Lab-Assignment/services.h"
 
 /* prototypes */
 void *service_thread(void *args);
 void set_server_error_code_std(reply_t *reply, int req_error_code);
-
-/* services */
-void init_db(reply_t *reply);
-void insert_item(request_t *request, reply_t *reply);
-void get_item(request_t *request, reply_t *reply);
-void modify_item(request_t *request, reply_t *reply);
-void delete_item(request_t *request, reply_t *reply);
-void item_exists(request_t *request, reply_t *reply);
 
 
 /* connection queue */
@@ -46,7 +39,7 @@ void set_server_error_code_std(reply_t *reply, const int req_error_code) {
     /* most services follow this error code model */
     switch (req_error_code) {
         case 0: reply->server_error_code = SRV_SUCCESS; break;
-        case -1: reply->server_error_code = SRV_ERROR; break;
+        case -1: reply->server_error_code = SRV_ERR_CN_ANY; break;
         default: break;
     }
 }
@@ -79,172 +72,93 @@ void *service_thread(void *args) {
         /* set up server reply */
         reply_t reply;
 
+        //test operation, to test client
+        if (!strcmp(request.op_code, TEST)) {
+            reply.server_error_code = TEST_ERR_CODE;
+            /* send server reply */
+            if (send_server_reply(client_socket, &reply) == -1) continue;
+        }
+
         if (!strcmp(request.op_code, REGISTER) || !strcmp(request.op_code, UNREGISTER) ||
         !strcmp(request.op_code, CONNECT) || !strcmp(request.op_code, DISCONNECT)) {
             if (recv_string(client_socket, request.username) == -1) continue;
         }
 
-        /* check whether client request is valid and execute it */
-        switch (request.header.op_code) {
-            case INIT:
-                /* execute client request */
-                init_db(&reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1) continue;
-                break;
-            case SET_VALUE:
-                /* receive rest of client request */
-                if (recv_key(client_socket, &request.item) == -1 ||
-                recv_values(client_socket, &request.item) == -1) continue;
-
-                /* execute client request */
-                insert_item(&request, &reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1) continue;
-                break;
-            case GET_VALUE:
-                /* receive rest of client request */
-                if (recv_key(client_socket, &request.item) == -1) continue;
-
-                /* execute client request */
-                get_item(&request, &reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1 ||
-                        send_values(client_socket, &reply.item) == -1) continue;
-                break;
-            case MODIFY_VALUE:
-                /* receive rest of client request */
-                if (recv_key(client_socket, &request.item) == -1 ||
-                    recv_values(client_socket, &request.item) == -1) continue;
-
-                /* execute client request */
-                modify_item(&request, &reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1) continue;
-                break;
-            case DELETE_KEY:
-                /* receive rest of client request */
-                if (recv_key(client_socket, &request.item) == -1) continue;
-
-                /* execute client request */
-                delete_item(&request, &reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1) continue;
-                break;
-            case EXIST:
-                /* receive rest of client request */
-                if (recv_key(client_socket, &request.item) == -1) continue;
-
-                /* execute client request */
-                item_exists(&request, &reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1) continue;
-                break;
-            case NUM_ITEMS:
-                /* execute client request */
-                get_num_items(&reply);
-
-                /* send server reply */
-                if (send_server_reply(client_socket, &reply) == -1 ||
-                send_num_items(client_socket, &reply) == -1) continue;
-                break;
-            default:    /* invalid operation */
-                fprintf(stderr, "Requested invalid operation\n");
-                close(client_socket); continue;
-        } // end switch
+//        /* check whether client request is valid and execute it */
+//        switch (request.header.op_code) {
+//            case INIT:
+//                /* execute client request */
+//                init_db(&reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1) continue;
+//                break;
+//            case SET_VALUE:
+//                /* receive rest of client request */
+//                if (recv_key(client_socket, &request.item) == -1 ||
+//                recv_values(client_socket, &request.item) == -1) continue;
+//
+//                /* execute client request */
+//                insert_item(&request, &reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1) continue;
+//                break;
+//            case GET_VALUE:
+//                /* receive rest of client request */
+//                if (recv_key(client_socket, &request.item) == -1) continue;
+//
+//                /* execute client request */
+//                get_item(&request, &reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1 ||
+//                        send_values(client_socket, &reply.item) == -1) continue;
+//                break;
+//            case MODIFY_VALUE:
+//                /* receive rest of client request */
+//                if (recv_key(client_socket, &request.item) == -1 ||
+//                    recv_values(client_socket, &request.item) == -1) continue;
+//
+//                /* execute client request */
+//                modify_item(&request, &reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1) continue;
+//                break;
+//            case DELETE_KEY:
+//                /* receive rest of client request */
+//                if (recv_key(client_socket, &request.item) == -1) continue;
+//
+//                /* execute client request */
+//                delete_item(&request, &reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1) continue;
+//                break;
+//            case EXIST:
+//                /* receive rest of client request */
+//                if (recv_key(client_socket, &request.item) == -1) continue;
+//
+//                /* execute client request */
+//                item_exists(&request, &reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1) continue;
+//                break;
+//            case NUM_ITEMS:
+//                /* execute client request */
+//                get_num_items(&reply);
+//
+//                /* send server reply */
+//                if (send_server_reply(client_socket, &reply) == -1 ||
+//                send_num_items(client_socket, &reply) == -1) continue;
+//                break;
+//            default:    /* invalid operation */
+//                fprintf(stderr, "Requested invalid operation\n");
+//                close(client_socket); continue;
+//        } // end switch
     } // end outer while
-}
-
-
-void init_db(reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_empty_db();
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    set_server_error_code_std(reply, req_error_code);
-}
-
-
-void insert_item(request_t *request, reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_write_item(request->item.key, request->item.value1,
-                                       &(request->item.value2),&(request->item.value3), CREATE);
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    set_server_error_code_std(reply, req_error_code);
-}
-
-
-void get_item(request_t *request, reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_read_item(request->item.key, reply->item.value1,
-                                      &(reply->item.value2), &(reply->item.value3));
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    reply->item.key = request->item.key;
-    set_server_error_code_std(reply, req_error_code);
-}
-
-
-void modify_item(request_t *request, reply_t *reply){
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_write_item(request->item.key, request->item.value1,
-                                       &(request->item.value2), &(request->item.value3), MODIFY);
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    set_server_error_code_std(reply, req_error_code);
-}
-
-
-void delete_item(request_t *request, reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_delete_item(request->item.key);
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    set_server_error_code_std(reply, req_error_code);
-}
-
-
-void item_exists(request_t *request, reply_t *reply) {
-    /* execute client request */
-    pthread_mutex_lock(&mutex_db);
-
-    int req_error_code = db_item_exists(request->item.key);
-
-    pthread_mutex_unlock(&mutex_db);
-
-    /* fill server reply */
-    switch (req_error_code) {
-        case 1: reply->server_error_code = SRV_EXISTS; break;
-        case 0: reply->server_error_code = SRV_NOT_EXISTS; break;
-        default: break;
-    }
 }
 
 

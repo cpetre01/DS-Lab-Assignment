@@ -4,25 +4,28 @@
 /* utilities */
 #define TRUE 1
 #define FALSE 0
-#define MAX_STR_SIZE 512            /* generic string size */
-#define MAX_MSG_SIZE 256            /* size of content string */
-#define DB_NAME "db"                /* database directory name */
+#define MAX_STR_SIZE 512                /* generic string size */
+#define MAX_MSG_SIZE 256                /* size of message content string */
+#define MSG_ID_MAX_VALUE 4294967295     /* max message ID value (actually max unsigned int value on amd64) */
 
 /* services: operation codes */
 
-/* called by client */
+/* services called by client, served by server */
 #define REGISTER "REGISTER"
 #define UNREGISTER "UNREGISTER"
 #define CONNECT "CONNECT"
 #define DISCONNECT "DISCONNECT"
 #define SEND "SEND"
+#define SENDATTACH "SENDATTACH"
+#define TEST "TEST"
 
-/* called by server */
+/* services called by server, served by client */
 #define SEND_MESSAGE "SEND_MESSAGE"
 #define SEND_MESS_ACK "SEND_MESS_ACK"
 
 /* server error codes */
 #define SRV_SUCCESS 0
+#define TEST_ERR_CODE 100
 
 /* register */
 #define SRV_ERR_REG_USR_ALREADY_REG 1
@@ -46,11 +49,6 @@
 #define SRV_ERR_SEND_USR_NOT_EXISTS 1
 #define SRV_ERR_SEND_ANY 2
 
-/* DB file opening modes */
-#define READ 'r'
-#define CREATE 'c'
-#define MODIFY 'm'
-
 /* number casting stuff */
 #define INT 'i'
 #define FLOAT 'f'
@@ -65,7 +63,7 @@ ssize_t read_line(int d, char *buffer, int buf_space);
 /* types used for process communication */
 typedef struct {
     /* message sent between server & client, both ways */
-    u_int32_t id;               /* message ID */
+    unsigned int id;            /* message ID */
     char content[MAX_MSG_SIZE]; /* message content */
 } message_t;
 
