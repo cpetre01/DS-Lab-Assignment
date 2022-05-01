@@ -9,74 +9,46 @@
 #include "DS-Lab-Assignment/dbms/dbms.h"
 
 
-int db_list_items(void) {
-    struct dirent *dir_ent;
-    DIR *db = open_db(0);
-
-    if (!db) {
-        perror("Could not open DB directory");
-        return -1;
-    }
-
-    while ((dir_ent = readdir(db)) != NULL) {
-        if (!strcmp(dir_ent->d_name, ".") || !strcmp(dir_ent->d_name, "..")) continue;
-        printf("%s\n", dir_ent->d_name);
-    }
-
-    closedir(db); return 0;
-}
-
-
 int db_get_num_pend_msgs(const char *username) {
-    struct dirent *dir_ent;
-    DIR *db = open_db(0);
+    /* returns the number of messages pending to be sent to a given username */
+    char error[MAX_STR_SIZE];   /* message displayed in perror */
+    struct dirent *entry;
+    int num_pend_msgs = 0;
 
-    if (!db) {
+    /* set up the path to open pending messages table directory for given username */
+    char table_path[strlen(DB_DIR) + strlen(username) + 2];
+    sprintf(table_path, "%s/%s-table/%s", DB_DIR, username, PEND_MSGS_TABLE);
+
+    DIR *pend_msg_table = open_directory(table_path, READ);
+
+    if (!pend_msg_table) {
         perror("Could not open DB directory");
         return -1;
     }
 
-    int num_items = 0;
 
-    while ((dir_ent = readdir(db)) != NULL) {
-        if (!strcmp(dir_ent->d_name, ".") || !strcmp(dir_ent->d_name, "..")) continue;
-        num_items++;
+    while ((entry = readdir(pend_msg_table)) != NULL) {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        num_pend_msgs++;
     }
 
-    closedir(db); return num_items;
+    if (closedir(pend_msg_table) == -1) {
+        sprintf(error, "Error closing %s", table_path); perror(error);
+        return -1;
+    }
+
+    return num_pend_msgs;
 }
 
 
 int db_empty_db(void) {
-    struct dirent *dir_ent;
-    DIR *db = open_db(0);
-
-    if (!db) {
-        perror("Could not open DB directory");
-        return -1;
-    }
-
-    /* change to DB directory to manage inner files easily */
-    chdir(DB_DIR);
-
-    /* go through and delete all key files */
-    while ((dir_ent = readdir(db)) != NULL) {
-        if (!strcmp(dir_ent->d_name, ".") || !strcmp(dir_ent->d_name, "..")) continue;
-
-        if (remove(dir_ent->d_name) == -1) {
-            perror("Couldn't delete entire DB");
-            chdir(".."); closedir(db); return -1;
-        }
-    }
-
-    /* change back to executable's directory and finish */
-    chdir(".."); closedir(db); return 0;
+    return remove_recursive(DB_DIR);
 }
 
 
 int db_item_exists(const int key) {
     /* open key file */
-    int key_fd = open_tablefile(key, READ);
+    int key_fd = open_file(key, READ);
 
     /* if there is no file associated with that key */
     if (key_fd == -1) return 0;     /* key file doesn't exist */
@@ -90,7 +62,7 @@ int db_read_item(const int key, char *value1, int *value2, float *value3) {
     errno = 0;
 
     /* open key file */
-    int key_fd = open_tablefile(key, READ);
+    int key_fd = open_file(key, READ);
 
     /* error if there is no file associated with that key */
     if (key_fd == -1) {
@@ -132,7 +104,7 @@ int db_write_item(const int key, const char *value1, const int *value2, const fl
     }
 
     /* open key file */
-    int key_fd = open_tablefile(key, mode);
+    int key_fd = open_file(key, mode);
 
     /* error if there is no file associated with that key */
     if (key_fd == -1) {
@@ -167,19 +139,20 @@ int db_delete_item(const int key) {
 }
 
 
-int create_user_table(const char *username) {
+int create_user_table(const char *const username) {
     /* creates the entire table structure that will store data of the given username */
-    errno = 0;
-
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
     /* set up the path to open and/or create table directories for given username */
-    char table_path[MAX_STR_SIZE];
-    snprintf(table_path, MAX_STR_SIZE, "%s/%s-table", DB_DIR, username);
+    char table_path[strlen(DB_DIR) + strlen(username) + 2];
+    sprintf(table_path, "%s/%s-table", DB_DIR, username);
 
     /* set up the path for the userdata entry to be created */
-    char ud_entry_path[MAX_STR_SIZE];
-    snprintf(ud_entry_path, MAX_STR_SIZE, "%s/%s", table_path, USERDATA_ENTRY);
+    char ud_entry_path[strlen(table_path) + strlen(USERDATA_ENTRY) + 2];
+    sprintf(ud_entry_path, "%s/%s", table_path, USERDATA_ENTRY);
+
+    /* store errno and reset it */
+    int errno_old = errno; errno = 0;
 
     /* try to open username directory to see whether it exists */
     DIR *db = opendir(table_path);
@@ -187,35 +160,49 @@ int create_user_table(const char *username) {
         if (errno == ENOENT) {
             /* given username doesn't exist, so its table can be created */
             if (mkdir(table_path, S_IRWXU) == -1) {
-                sprintf(error, "%s table could not be created", username);
-                perror(error); return SRV_ERR_REG_ANY;
+                sprintf(error, "%s table could not be created", username); perror(error);
+                errno = errno_old;  /* restore errno */
+                return SRV_ERR_REG_ANY;
             }
 
             /* create userdata entry for given username */
-            int userdata_entry_fd = open_tablefile(ud_entry_path, CREATE);
+            int userdata_entry_fd = open_file(ud_entry_path, CREATE);
             if (userdata_entry_fd == -1) {
-                sprintf(error, "userdata entry for user %s could not be created", username);
-                perror(error); return SRV_ERR_REG_ANY;
+                sprintf(error, "userdata entry for user %s could not be created", username); perror(error);
+                errno = errno_old;  /* restore errno */
+                return SRV_ERR_REG_ANY;
             }
             close(userdata_entry_fd);
 
             /* now create pending messages table, within username table */
             snprintf(table_path, MAX_STR_SIZE, "/%s", PEND_MSGS_TABLE);
             if (mkdir(table_path, S_IRWXU) == -1) {
-                sprintf(error, "%s/%s table could not be created", username, PEND_MSGS_TABLE);
-                perror(error); return SRV_ERR_REG_ANY;
+                sprintf(error, "%s/%s table could not be created", username, PEND_MSGS_TABLE); perror(error);
+                errno = errno_old;  /* restore errno */
+                return SRV_ERR_REG_ANY;
             }
 
+            errno = errno_old;  /* restore errno */
             return SRV_SUCCESS;
-        } else {perror("Could not open username table"); return SRV_ERR_REG_ANY;}
+        }
+        /* some other opendir error */
+        perror("Could not open username table");
+        sprintf(error, "Could not open %s", table_path); perror(error);
+        errno = errno_old;  /* restore errno */
+        return SRV_ERR_REG_ANY;
     }
 
-    /* given username does exist */
-    closedir(db);
+    /* given username does exist, so can't create it */
+    if (closedir(db) == -1) {
+        sprintf(error, "Error closing %s", table_path); perror(error);
+        errno = errno_old;  /* restore errno */
+        return SRV_ERR_REG_ANY;
+    }
+    errno = errno_old;  /* restore errno */
     return SRV_ERR_REG_USR_ALREADY_REG;
 }
 
 
-int delete_user_table(const char *username) {
-    return SRV_SUCCESS;
+int delete_user_table(const char *const username) {
+
 }

@@ -7,7 +7,7 @@
 #define MODIFY 'm'
 
 /* SCHEMA */
-#define DB_DIR "db"                             /* database directory name */
+#define DB_DIR "users"                          /* database directory name */
 #define USERDATA_ENTRY "userdata.entry"         /* userdata entry name */
 #define PEND_MSGS_TABLE "pend_msgs-table"       /* pending messages table name */
 
@@ -32,8 +32,9 @@ typedef struct {
 
 
 /* functions called internally in dbms module */
-DIR *open_db(char mode);
-int open_tablefile(const char *table_path, char mode);
+int open_file(const char *path, char mode);
+DIR *open_directory(const char *const path, const char mode);
+int remove_recursive(const char *path);
 int read_entry(int table_fd, char *value, int size);
 int write_entry(int table_fd);
 
