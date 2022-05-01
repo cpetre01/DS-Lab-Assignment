@@ -1,7 +1,7 @@
 #TODO
 tweak dbms to store stuff
 
-define server error codes
+data structures to store clients (list of clients, reuse dbms?)
 
 client receiving thread (server-like)
 
@@ -9,9 +9,11 @@ client commands
 
 server functions
 
-data structures to store clients (list of clients, reuse dbms?)
-
 tests
+
+server -p <port> args thing
+
+server get local IP to display it in init server
 
 #Cleanup
 
