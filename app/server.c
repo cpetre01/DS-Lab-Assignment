@@ -74,6 +74,7 @@ void *service_thread(void *args) {
 
         //test operation, to test client
         if (!strcmp(request.op_code, TEST)) {
+            fprintf(stderr, "test op\n");
             reply.server_error_code = TEST_ERR_CODE;
             /* send server reply */
             if (send_server_reply(client_socket, &reply) == -1) continue;
@@ -232,12 +233,15 @@ int main(int argc, char **argv) {
         pthread_create(&thread_pool[i], &th_attr, service_thread, NULL);
     }
 
+//    doesn't work for some reason, it prints a '
     /* get local IP address to print initial server log message */
-    if (getsockname(server_sd, (struct sockaddr *) &server_addr, (socklen_t *) sizeof server_addr) == -1) {
+    struct sockaddr t;
+    socklen_t l = sizeof t;
+    if (getsockname(server_sd, &t, &l) == -1) {
         perror("Server get local IP address error"); return -1;
     }
     printf("s> ");
-    printf("init server %ui:%i\n", server_addr.sin_addr.s_addr, server_port);
+    printf("init server %s:%i\n", t.sa_data, server_port);
     while (TRUE) {
 //        printf("Waiting for connections...\n");
 

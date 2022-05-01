@@ -29,7 +29,7 @@ int send_string(const int socket, const char *string) {
 
 int recv_string(const int socket, char *string) {
     /* function that receives a string from socket */
-    if (recv_msg(socket, string, (int) (strlen(string) + 1)) == -1) {
+    if (read_line(socket, string, MAX_MSG_SIZE) == -1) {
         perror("Receive string error");
         close(socket); return -1;
     }
