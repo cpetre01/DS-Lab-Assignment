@@ -23,6 +23,11 @@
 #define SEND_MESSAGE "SEND_MESSAGE"
 #define SEND_MESS_ACK "SEND_MESS_ACK"
 
+/* DBMS error codes */
+#define DBMS_SUCCESS 0
+#define DBMS_ERR_ANY -1
+#define DBMS_ERR_NOT_EXISTS -2
+
 /* server error codes */
 #define SRV_SUCCESS 0
 #define TEST_ERR_CODE 100
@@ -49,15 +54,19 @@
 #define SRV_ERR_SEND_USR_NOT_EXISTS 1
 #define SRV_ERR_SEND_ANY 2
 
+/* DB entry types */
+#define ENT_TYPE_UD 0       /* userdata entry type */
+#define ENT_TYPE_P_MSG 1    /* pending message entry type */
+
 /* number casting stuff */
 #define INT 'i'
 #define FLOAT 'f'
 int str_to_num(const char *value_str, void *value, char type);
 
 /* file & socket stuff */
-int send_msg(int d, const char *buffer, int len);
-int recv_msg(int d, char *buffer, int len);
-ssize_t read_line(int d, char *buffer, int buf_space);
+int write_bytes(int d, const char *buffer, int len);
+int read_bytes(int d, char *buffer, int len);
+int read_line(int d, char *buffer, int buf_space);
 
 
 /* types used for process communication */
@@ -88,6 +97,25 @@ typedef struct {
     char server_error_code;     /* error code returned by the server; client interprets it
  *                              to figure out whether the transaction was successful */
 } reply_t;
+
+#include <stdint.h>
+
+struct userdata {
+    unsigned char status;   /* 0: disconnected; 1: connected*/
+    char ip[16];            /* client IP for receiving thread */
+    uint16_t port;          /* client port for receiving thread */
+    unsigned int last_msg_id;
+};
+
+
+typedef struct {
+    char username[MAX_STR_SIZE];
+    char type;                  /* ENT_TYPE_UD or ENT_TYPE_P_MSG */
+    union {
+        struct userdata user;   /* userdata entry */
+        message_t msg;          /* message list entry */
+    };
+} entry_t;
 
 #endif //UTILS_H
 

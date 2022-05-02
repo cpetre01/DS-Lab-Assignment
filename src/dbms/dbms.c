@@ -72,11 +72,11 @@ int db_read_item(const int key, char *value1, int *value2, float *value3) {
     }
 
     /* read value1 */
-    if (read_entry(key_fd, value1, MAX_MSG_SIZE) == -1) return -1;
+    if (read_entry(key_fd, value1) == -1) return -1;
 
     /* read value2 */
     char value2_str[MAX_STR_SIZE];
-    if (read_entry(key_fd, value2_str, MAX_STR_SIZE) == -1) return -1;
+    if (read_entry(key_fd, value2_str) == -1) return -1;
 
     /* cast value2_str to int */
     if (str_to_num(value2_str, (void *) value2, INT) == -1) {
@@ -85,7 +85,7 @@ int db_read_item(const int key, char *value1, int *value2, float *value3) {
 
     /* now read value3 */
     char value3_str[MAX_STR_SIZE];
-    if (read_entry(key_fd, value3_str, MAX_STR_SIZE) == -1) return -1;
+    if (read_entry(key_fd, value3_str) == -1) return -1;
 
     /* cast value3_str to float */
     if (str_to_num(value3_str, (void *) value3, FLOAT) == -1) {
@@ -140,11 +140,11 @@ int db_delete_item(const int key) {
 
 
 int create_user_table(const char *const username) {
-    /* creates the entire table structure that will store data of the given username */
+    /* creates a table for the given username */
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
-    /* set up the path to open and/or create table directories for given username */
-    char table_path[strlen(DB_DIR) + strlen(username) + 2];
+    /* set up the path to open table directory for given username */
+    char table_path[strlen(DB_DIR) + strlen(username) + 8];
     sprintf(table_path, "%s/%s-table", DB_DIR, username);
 
     /* set up the path for the userdata entry to be created */
@@ -192,7 +192,7 @@ int create_user_table(const char *const username) {
         return SRV_ERR_REG_ANY;
     }
 
-    /* given username does exist, so can't create it */
+    /* given username does exist, so we can't create it */
     if (closedir(db) == -1) {
         sprintf(error, "Error closing %s", table_path); perror(error);
         errno = errno_old;  /* restore errno */
@@ -204,5 +204,11 @@ int create_user_table(const char *const username) {
 
 
 int delete_user_table(const char *const username) {
+    /* deletes a given username table if it exists */
 
+    /* set up the path to remove table directories for given username */
+    char table_path[strlen(DB_DIR) + strlen(username) + 8];
+    sprintf(table_path, "%s/%s-table", DB_DIR, username);
+
+    return remove_recursive(table_path);
 }

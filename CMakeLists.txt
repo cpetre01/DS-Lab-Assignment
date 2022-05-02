@@ -26,10 +26,10 @@ add_subdirectory(src)
 add_subdirectory(app)
 
 # testing available only if this is the main app and explicitly required
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING STREQUAL "ON")
-    enable_testing()
-#   GoogleTest framework
-    add_subdirectory(extern/googletest)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND TESTING STREQUAL "ON")
+#    enable_testing()
+##   GoogleTest framework
+#    add_subdirectory(extern/googletest)
 #   unittest code
     add_subdirectory(test)
 endif()

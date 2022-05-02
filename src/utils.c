@@ -68,43 +68,47 @@ int str_to_num(const char *const value_str, void *value, const char type) {
 
 /* file & socket stuff */
 
-int send_msg(const int d, const char *buffer, const int len) {
-    /* sends a content of len bytes to d (socket, file... descriptor) */
-    ssize_t bytes_sent;         /* number of bytes written by last write() */
-    ssize_t bytes_left = len;   /* number of bytes left to be received */
+int write_bytes(const int d, const char *buffer, const int len) {
+    /* writes len bytes to d (socket, file... descriptor) */
+    ssize_t bytes_written;          /* number of bytes written by last write() */
+    ssize_t bytes_left = len;       /* number of bytes left to be received */
+    int bytes_written_total = 0;    /* total bytes written so far */
 
     do {
-        bytes_sent = write(d, buffer, bytes_left);
-        bytes_left = bytes_left - bytes_sent;
-        buffer = buffer + bytes_sent;
-    } while ((bytes_left > 0) && (bytes_sent >= 0));
+        bytes_written = write(d, buffer, bytes_left);
+        bytes_left -= bytes_written;
+        bytes_written_total += (int) bytes_written;
+        buffer += bytes_written;
+    } while ((bytes_left > 0) && (bytes_written >= 0));
 
-    if (bytes_sent < 0) return -1;  /* write() error */
-    return 0;	/* full length has been sent */
+    if (bytes_written < 0) return -1;  /* write() error */
+    return bytes_written_total;
 }
 
 
-int recv_msg(const int d, char *buffer, const int len) {
-    /* receives a content of len bytes from d (socket, file... descriptor) */
-    ssize_t bytes_received;     /* number of bytes fetched by last read() */
-    ssize_t bytes_left = len;   /* number of bytes left to be received */
+int read_bytes(const int d, char *buffer, const int len) {
+    /* reads len bytes from d (socket, file... descriptor) */
+    ssize_t bytes_read;             /* number of bytes fetched by last read() */
+    ssize_t bytes_left = len;       /* number of bytes left to be received */
+    int bytes_read_total = 0;       /* total bytes read so far */
 
     do {
-        bytes_received = read(d, buffer, bytes_left);
-        bytes_left -= bytes_received;
-        buffer += bytes_received;
-    } while ((bytes_left > 0) && (bytes_received >= 0));
+        bytes_read = read(d, buffer, bytes_left);
+        bytes_left -= bytes_read;
+        bytes_read_total += (int) bytes_read;
+        buffer += bytes_read;
+    } while ((bytes_left > 0) && (bytes_read > 0));
 
-    if (bytes_received < 0) return -1;  /* read() error */
-    return 0;	/* full length has been received */
+    if (bytes_read < 0) return -1;  /* read() error */
+    return bytes_read_total;
 }
 
 
-ssize_t read_line(const int d, char *buffer, const int buf_space) {
+int read_line(const int d, char *buffer, const int buf_space) {
     /* reads a 1-line string of at most (buf_space -1) chars, excluding terminating byte,
      * from d (socket, file... descriptor); stops reading when a '\0' or '\n' is found */
     ssize_t bytes_read;             /* number of bytes fetched by last read() */
-    ssize_t bytes_read_total = 0;   /* total bytes read so far */
+    int bytes_read_total = 0;       /* total bytes read so far */
     char ch;
 
     /* check arguments */

@@ -19,7 +19,7 @@ int open_file(const char *const path, const char mode) {
         default:
             errno = EINVAL;
             perror("Invalid open mode");
-            return -1;;
+            return -1;
     }
 
     return fd;
@@ -31,7 +31,11 @@ DIR *open_directory(const char *const path, const char mode) {
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
     /* check given mode */
-    if (mode != CREATE && mode != READ) {errno = EINVAL; return NULL;}
+    if (mode != CREATE && mode != READ) {
+        errno = EINVAL;
+        perror("Invalid open mode");
+        return NULL;
+    }
 
     /* store errno and reset it */
     int errno_old = errno; errno = 0;
@@ -100,18 +104,18 @@ int remove_recursive(const char *const path) {
                 if (closedir(directory) == -1) {
                     sprintf(error, "Error closing %s", path); perror(error);
                     errno = errno_old;  /* restore errno */
-                    return -1;
+                    return DBMS_ERR_ANY;
                 }
 
                 errno = errno_old;  /* restore errno */
-                return -1;
+                return DBMS_ERR_ANY;
             }
         }
 
         if (closedir(directory) == -1) {
             sprintf(error, "Error closing %s", path); perror(error);
             errno = errno_old;  /* restore errno */
-            return -1;
+            return DBMS_ERR_ANY;
         }
     }
     /* error opening path as a directory */
@@ -120,7 +124,7 @@ int remove_recursive(const char *const path) {
     if (errno == ENOENT) {
         sprintf(error, "%s does not exist", path); perror(error);
         errno = errno_old;  /* restore errno */
-        return -1;
+        return DBMS_ERR_NOT_EXISTS;
     }
 
     /* it's not a directory, but it exists, so it must be just a file */
@@ -129,22 +133,83 @@ int remove_recursive(const char *const path) {
 }
 
 
-int read_entry(const int table_fd, char *value, const int size) {
+void cpy_ud_ent(char *buffer, entry_t *entry, const char mode) {
+    /* copies userdata type entry from buffer to entry or vice-versa */
+
+    void *entry_p = (void *) &(entry->user.status);
+    /* set up clever pointer tricks according to given mode */
+    void **dest = (mode == LOAD_FROM_DB) ? &entry_p : (void *) &buffer;
+    void **src = (mode == LOAD_FROM_DB) ? (void *) &buffer : &entry_p;
+
+    memcpy(*dest, *src, sizeof entry->user.status);
+    buffer += sizeof entry->user.status;
+
+    entry_p = (void *) entry->user.ip;
+    memcpy(*dest, *src, sizeof entry->user.ip);
+    buffer += sizeof entry->user.ip;
+
+    entry_p = (void *) &(entry->user.port);
+    memcpy(*dest, *src, sizeof entry->user.port);
+    buffer += sizeof entry->user.port;
+
+    entry_p = (void *) &(entry->user.last_msg_id);
+    memcpy(*dest, *src, sizeof entry->user.last_msg_id);
+}
+
+
+void cpy_p_msg_ent(char *buffer, entry_t *entry, const char mode) {
+    /* copies pending message type entry from buffer to entry or vice-versa */
+
+    void *entry_p = (void *) entry->msg.content;
+    /* set up clever pointer tricks according to given mode */
+    void *dest = (mode == LOAD_FROM_DB) ? entry_p : (void *) buffer;
+    void *src = (mode == LOAD_FROM_DB) ? (void *) buffer : entry_p;
+
+    memcpy(dest, src, sizeof entry->msg.content);
+}
+
+
+void cpy_entry(char *buffer, entry_t *entry, const char mode) {
+    /* copies entry data from buffer to entry or vice-versa */
+
+    /* check given mode */
+    if (mode != LOAD_FROM_DB && mode != SAVE_TO_DB) {
+        errno = EINVAL;
+        perror("Invalid copy mode");
+        return;
+    }
+
+    /* copy entry data depending on entry type */
+    ((entry->type == ENT_TYPE_UD) ? cpy_ud_ent : cpy_p_msg_ent)(buffer, entry, mode);
+}
+
+
+int read_entry(const int table_fd, entry_t *entry) {
     ssize_t bytes_read;     /* used for error handling of read_line calls */
 
-    /* read value */
-    bytes_read = read_line(table_fd, value, size);
+    /* figure out the size of the entry to be read based on the entry type */
+    int entry_size = (entry->type == ENT_TYPE_UD) ? sizeof(struct userdata) : sizeof entry->msg.content;
+    char buffer[entry_size];
+
+    /* read entry */
+    bytes_read = read_bytes(table_fd, buffer, entry_size);
     if (bytes_read == -1) {
-        perror("Error reading line");
-        close(table_fd); return -1;
+        perror("Error reading entry");
+        close(table_fd);
+        return DBMS_ERR_ANY;
     } else if (!bytes_read) {
-        fprintf(stderr, "Nothing was read\n");
-        close(table_fd); return -1;
+        fprintf(stderr, "No bytes were read\n");
+        close(table_fd);
+        return DBMS_ERR_ANY;
     }
-    return SRV_SUCCESS;
+
+    /* copy every column to its corresponding entry_t member */
+    cpy_entry(buffer, entry, LOAD_FROM_DB);
+
+    return DBMS_SUCCESS;
 }
 
 
 int write_entry(const int table_fd) {
-    return SRV_SUCCESS;
+    return DBMS_SUCCESS;
 }
