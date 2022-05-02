@@ -7,6 +7,7 @@
 #define MAX_STR_SIZE 512                /* generic string size */
 #define MAX_MSG_SIZE 256                /* size of message content string */
 #define MSG_ID_MAX_VALUE 4294967295     /* max message ID value (actually max unsigned int value on amd64) */
+#define MSG_ID_MAX_STR_SIZE 10          /* max length of message ID as a string */
 
 /* services: operation codes */
 
@@ -23,12 +24,9 @@
 #define SEND_MESSAGE "SEND_MESSAGE"
 #define SEND_MESS_ACK "SEND_MESS_ACK"
 
-/* DBMS error codes */
-#define DBMS_SUCCESS 0
-#define DBMS_ERR_ANY -1
-#define DBMS_ERR_NOT_EXISTS -2
-
 /* server error codes */
+
+/* general */
 #define SRV_SUCCESS 0
 #define TEST_ERR_CODE 100
 
@@ -54,9 +52,39 @@
 #define SRV_ERR_SEND_USR_NOT_EXISTS 1
 #define SRV_ERR_SEND_ANY 2
 
+/* client connection states
+ * used in userdata.status */
+#define STATUS_DCN 0
+#define STATUS_CN 1
+
+/* DBMS stuff */
+
+/* DBMS error codes */
+#define DBMS_SUCCESS 0
+#define DBMS_ERR_ANY -1
+#define DBMS_ERR_INV_ARGS -2
+#define DBMS_ERR_ENT_NOT_EXISTS -3
+#define DBMS_ERR_ENT_EXISTS -4
+
+/* DB file opening modes */
+#define READ 'r'
+#define CREATE 'c'
+#define MODIFY 'm'
+#define DELETE 'd'
+
+/* SCHEMA */
+#define DB_DIR "users"                          /* database directory name */
+#define USERDATA_ENTRY "userdata.entry"         /* userdata entry name */
+#define PEND_MSGS_TABLE "pend_msgs-table"       /* pending messages table name */
+
 /* DB entry types */
 #define ENT_TYPE_UD 0       /* userdata entry type */
 #define ENT_TYPE_P_MSG 1    /* pending message entry type */
+
+/* entry copy modes */
+#define LOAD_FROM_DB 1      /* copy entry data from DB buffer to entry_t object */
+#define SAVE_TO_DB 2        /* copy entry data from entry_t object to DB buffer */
+
 
 /* number casting stuff */
 #define INT 'i'
