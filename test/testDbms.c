@@ -7,6 +7,7 @@
 int main(int argc, char **argv) {
     if (db_init_db() == DBMS_ERR_ANY) return -1;
 
+    printf("TEST: create user\n");
     /* create a user */
     entry_t entry_test_create;
     strcpy(entry_test_create.username, "cosmin");
@@ -27,6 +28,7 @@ int main(int argc, char **argv) {
     printf("%c, %s, %u, %u\n", entry_test_load_created.user.status, entry_test_load_created.user.ip,
            entry_test_load_created.user.port, entry_test_load_created.user.last_msg_id);
 
+    printf("TEST: modify user\n");
     /* modify created user */
     /* create a user */
     entry_t entry_test_modify;
@@ -47,6 +49,7 @@ int main(int argc, char **argv) {
     printf("%c, %s, %u, %u\n", entry_test_load_modified.user.status, entry_test_load_modified.user.ip,
            entry_test_load_modified.user.port, entry_test_load_modified.user.last_msg_id);
 
+    printf("TEST: delete user\n");
     /* delete created user */
     db_del_usr_tbl("cosmin");
 

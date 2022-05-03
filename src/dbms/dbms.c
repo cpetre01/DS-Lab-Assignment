@@ -37,11 +37,7 @@ int db_get_num_pend_msgs(const char *username) {
         num_pend_msgs++;
     }
 
-    if (closedir(pend_msg_table) == -1) {
-        sprintf(error, "Error closing %s", table_path); perror(error);
-        return DBMS_ERR_ANY;
-    }
-
+    closedir(pend_msg_table);
     return num_pend_msgs;
 }
 
@@ -58,19 +54,13 @@ int db_io_op_usr_ent(entry_t *entry, const char mode) {
 
     /* check entry type */
     if (entry->type != ENT_TYPE_UD && entry->type != ENT_TYPE_P_MSG) {
-        /* store errno and reset it to show invalid args */
-        int errno_old = errno; errno = EINVAL;
-        perror("Invalid entry type");
-        errno = errno_old;  /* restore errno */
+        fprintf(stderr, "Invalid entry type");
         return DBMS_ERR_INV_ARGS;
     }
 
-    /* check open mode */
+    /* check file mode */
     if (mode != CREATE && mode != MODIFY && mode != READ && mode != DELETE) {
-        /* store errno and reset it to show invalid args */
-        int errno_old = errno; errno = EINVAL;
-        perror("Invalid file mode");
-        errno = errno_old;  /* restore errno */
+        fprintf(stderr, "Invalid file mode");
         return DBMS_ERR_INV_ARGS;
     }
 
@@ -140,12 +130,7 @@ int db_creat_usr_tbl(entry_t *entry) {
             /* given username doesn't exist, so its table can be created */
             user_table = open_directory(table_path, CREATE);
             if (!user_table) return DBMS_ERR_ANY;
-
-            if (closedir(user_table) == -1) {
-                sprintf(error, "Error closing %s", table_path); perror(error);
-                errno = errno_old;  /* restore errno */
-                return DBMS_ERR_ANY;
-            }
+            closedir(user_table);
 
             /* create userdata entry for given username */
             if (db_io_op_usr_ent(entry, CREATE) != DBMS_SUCCESS) return DBMS_ERR_ANY;
@@ -153,12 +138,7 @@ int db_creat_usr_tbl(entry_t *entry) {
             /* now create pending messages table, within username table */
             DIR *p_msg_table = open_directory(p_msg_table_path, CREATE);
             if (!p_msg_table) return DBMS_ERR_ANY;
-
-            if (closedir(p_msg_table) == -1) {
-                sprintf(error, "Error closing %s", p_msg_table_path); perror(error);
-                errno = errno_old;  /* restore errno */
-                return DBMS_ERR_ANY;
-            }
+            closedir(p_msg_table);
 
             errno = errno_old;  /* restore errno */
             return DBMS_SUCCESS;
@@ -170,11 +150,7 @@ int db_creat_usr_tbl(entry_t *entry) {
     }
 
     /* given username does exist, so we can't create it */
-    if (closedir(user_table) == -1) {
-        sprintf(error, "Error closing %s", table_path); perror(error);
-        errno = errno_old;  /* restore errno */
-        return DBMS_ERR_ANY;
-    }
+    closedir(user_table);
     errno = errno_old;  /* restore errno */
     return DBMS_ERR_ENT_EXISTS;
 }

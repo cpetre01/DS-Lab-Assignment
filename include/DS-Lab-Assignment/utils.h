@@ -81,10 +81,6 @@
 #define ENT_TYPE_UD 0       /* userdata entry type */
 #define ENT_TYPE_P_MSG 1    /* pending message entry type */
 
-/* entry copy modes */
-#define LOAD_FROM_DB 1      /* copy entry data from DB buffer to entry_t object */
-#define SAVE_TO_DB 2        /* copy entry data from entry_t object to DB buffer */
-
 
 /* number casting stuff */
 #define INT 'i'
@@ -95,6 +91,27 @@ int str_to_num(const char *value_str, void *value, char type);
 int write_bytes(int d, const char *buffer, int len);
 int read_bytes(int d, char *buffer, int len);
 int read_line(int d, char *buffer, int buf_space);
+
+
+/* Macros */
+
+/* macro for general error checking */
+#define CHECK_ERROR(FUNCTION_CALL, RETURN_ERROR) \
+    int ret_val = (FUNCTION_CALL); \
+    if (ret_val == -1) { \
+        fprintf(stderr, "Runtime error: %s returned %d at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
+        return (RETURN_ERROR); \
+    }
+
+/* macro for socket error checking */
+#define CHECK_SOCKET_ERROR(FUNCTION_CALL, RETURN_ERROR) \
+    int ret_val = (FUNCTION_CALL); \
+    if (ret_val == -1) { \
+        fprintf(stderr, "Runtime error: %s returned %d at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
+        perror(#FUNCTION_CALL); \
+        close(socket); \
+        return (RETURN_ERROR); \
+    }
 
 
 /* types used for process communication */
