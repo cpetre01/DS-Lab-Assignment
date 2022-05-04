@@ -11,7 +11,7 @@ SEND = 'SEND'
 SENDATTACH = 'SENDATTACH'
 QUIT = 'QUIT'
 
-TEST = 'TEST'   # test client connection with this op, you should receive TEST_ERR_CODE = 100 from server
+TEST = 'TEST'  # test client connection with this op, you should receive TEST_ERR_CODE = 100 from server
 
 # services called by server, served by client
 SEND_MESSAGE = 'SEND_MESSAGE'
@@ -28,13 +28,21 @@ class Item:
     _recipient_username = str
     _destination_port = str
     _message = str
-
-    @property
-    def message(self):
-        return self._message
+    _message_id = str
 
 
 class Request(object):
+    """
+        Class used to represent a request.
+        ...
+        Attributes
+        ----------
+        header: class
+            header containing the username and operation code
+        item: class
+            item containing the listening port of the client and the message to be sent
+    """
+
     _header = Header()
     _item = Item()
 
@@ -48,7 +56,35 @@ class Request(object):
 
 
 class Reply:
+    """
+        Class used to represent a server reply.
+        ...
+        Attributes
+        ----------
+        server_error_code: str
+            error code sent by the server
+         header: class
+            header containing the username and operation code
+        item: class
+            item containing the listening port of the client and the message to be sent
+    """
+
     _header = Header()
     _server_error_code = str
-    _message_id = int
-    _message = Item().message
+    _item = Item()
+
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def item(self):
+        return self._item
+
+    @property
+    def server_error_code(self):
+        return self._server_error_code
+
+    @server_error_code.setter
+    def server_error_code(self, value):
+        self._server_error_code = value
