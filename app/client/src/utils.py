@@ -20,13 +20,32 @@ SEND_MESS_ACK = 'SEND_MESS_ACK'
 
 # ******************** TYPES *********************
 class Header:
+    """
+        Class used to represent a request header.
+        ...
+        Attributes
+        ----------
+        op_code: str
+            operation code used to represent the desired operation to be performed
+        username: str
+            name of the client
+     """
     _op_code = str
     _username = str
 
 
 class Item:
-    _recipient_username = str
-    _destination_port = str
+    """
+        Class used to represent a request item.
+        ...
+        Attributes
+        ----------
+        listening_port: str
+            port which a thread will be listening to for receiving server replies
+        message: str
+            message to be sent to a client
+    """
+    listening_port = str
     _message = str
     _message_id = str
 

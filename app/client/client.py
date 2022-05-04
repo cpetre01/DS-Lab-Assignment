@@ -3,6 +3,7 @@ import socket
 from threading import Thread
 from enum import Enum
 from src import netUtils, utils
+global t
 
 
 class Client:
@@ -150,6 +151,7 @@ class Client:
         # print the corresponding error message
         if reply.server_error_code == Client.RC.OK:
             Client.CURRENT_USER = None
+            t.join()
             print("DISCONNECT OK")
         elif reply.server_error_code == Client.RC.ERROR:
             print("DISCONNECT FAIL: USER DOES NOT EXIST")

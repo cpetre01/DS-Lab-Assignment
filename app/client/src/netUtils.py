@@ -61,6 +61,7 @@ def receive_server_response(sock):
     # we create a while loop in charge of receiving data from the server
     while True:
         msg = sock.recv(1)
+        # when the \0 character is reached, the string has ended and it stops receiving characters
         if msg == b'\0':
             break
     # the received data is decoded and returned
