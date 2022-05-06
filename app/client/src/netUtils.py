@@ -3,16 +3,19 @@ to server socket, as well as connecting to the socket"""
 
 # ******************** IMPORTS ***********************
 import socket
-import utils
+from src import utils
 
 # ******************** FUNCTIONS *********************
 
 
 def connect_socket(server_address: tuple):
     """Function in charge of connecting to the server socket"""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('connecting to {} port {}'.format(*server_address))
-    sock.connect(server_address)
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+    except Exception as ex:
+        print(f"Cannot connect to server. Exception: {ex}")
     return sock
 
 
