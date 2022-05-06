@@ -14,9 +14,10 @@ def connect_socket(server_address: tuple):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print('connecting to {} port {}'.format(*server_address))
         sock.connect(server_address)
+        return sock
     except Exception as ex:
         print(f"Cannot connect to server. Exception: {ex}")
-    return sock
+    
 
 
 def send_header(sock, request):
