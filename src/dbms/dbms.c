@@ -8,19 +8,17 @@
 
 
 int db_init_db(void) {
-    /* initialize the DB: make sure that the DB directory exists, create it if it doesn't */
-    DIR * result = open_directory(DB_DIR, CREATE);
+    /*** Initialize the DB: make sure that the DB db exists, create it if it doesn't ***/
+    DIR * db;
+    CHECK_FUNC_ERROR(open_directory(DB_DIR, OVERWRITE, &db), DBMS_ERR_ANY)
 
-    if (!result) return DBMS_ERR_ANY;   /* some error occurred */
-
-    closedir(result);
+    closedir(db);
     return DBMS_SUCCESS;
 }
 
 
 int db_get_num_pend_msgs(const char *username) {
-    /* returns the number of messages pending to be sent to a given username */
-    char error[MAX_STR_SIZE];   /* message displayed in perror */
+    /*** Returns the number of messages pending to be sent to a given username ***/
     struct dirent *entry;
     int num_pend_msgs = 0;
 
@@ -28,9 +26,8 @@ int db_get_num_pend_msgs(const char *username) {
     char table_path[strlen(DB_DIR) + strlen(username) + strlen(PEND_MSGS_TABLE) + 9];
     sprintf(table_path, "%s/%s-table/%s", DB_DIR, username, PEND_MSGS_TABLE);
 
-    DIR *pend_msg_table = open_directory(table_path, READ);
-
-    if (!pend_msg_table) return DBMS_ERR_ANY;
+    DIR *pend_msg_table;
+    CHECK_FUNC_ERROR(open_directory(table_path, READ, &pend_msg_table), DBMS_ERR_ANY)
 
     while ((entry = readdir(pend_msg_table)) != NULL) {
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
@@ -43,30 +40,43 @@ int db_get_num_pend_msgs(const char *username) {
 
 
 int db_empty_db(void) {
+    /*** Simply deletes all files and directories in the DB root folder ***/
     return remove_recursive(DB_DIR);
 }
 
 
+int db_user_exists(const char *const username) {
+    /*** Checks whether a given username exists in the DB ***/
+    /* set up the path to open username user_table */
+    size_t path_len = strlen(DB_DIR) + strlen(username) + 7;
+    char user_path[path_len];
+    sprintf(user_path, "%s/%s-table", DB_DIR, username);
+    DIR *user_table;
+
+    /* try to open it and see if it exists */
+    int result = open_directory(user_path, READ, &user_table);
+
+    if (result == DBMS_ERR_NOT_EXISTS) return FALSE;
+    else if (result == DBMS_SUCCESS) {
+        closedir(user_table);
+        return TRUE;
+    }
+
+    /* some other error happened, so return its error code */
+    return result;
+}
+
+
 int db_io_op_usr_ent(entry_t *entry, const char mode) {
-    /* reads, writes or deletes a DB username entry;
+    /*** Reads, writes or deletes a DB username entry;
      * entry type must be specified in given entry->type;
-     * it can read, modify or delete an existing entry, or create a new one */
-
-    /* check entry type */
-    if (entry->type != ENT_TYPE_UD && entry->type != ENT_TYPE_P_MSG) {
-        fprintf(stderr, "Invalid entry type");
-        return DBMS_ERR_INV_ARGS;
-    }
-
-    /* check file mode */
-    if (mode != CREATE && mode != MODIFY && mode != READ && mode != DELETE) {
-        fprintf(stderr, "Invalid file mode");
-        return DBMS_ERR_INV_ARGS;
-    }
-
+     * it can read, modify or delete an existing entry, or create a new one ***/
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
-    /* set up the path to write username entry:
+    CHECK_ARGS(entry->type != ENT_TYPE_UD && entry->type != ENT_TYPE_P_MSG, "Invalid Entry Type")
+    CHECK_ARGS(mode != CREATE && mode != MODIFY && mode != READ && mode != DELETE, "Invalid File Mode")
+
+    /* set up the path to read/write username entry:
      * set up path length */
     size_t entry_len = strlen(DB_DIR) + strlen(entry->username) + 9;   /* account for common path elements */
     /* account for specific path elements depending on entry type */
@@ -90,14 +100,14 @@ int db_io_op_usr_ent(entry_t *entry, const char mode) {
     if (entry_fd == -1) {
         if (errno == ENOENT) {
             sprintf(error, "%s doesn't exist", entry_path); perror(error);
-            return DBMS_ERR_ENT_NOT_EXISTS;
+            return DBMS_ERR_NOT_EXISTS;
         }
         /* some other open() error */
         sprintf(error, "Error opening %s", entry_path); perror(error);
         return DBMS_ERR_ANY;
     }
 
-    /* read/write entry and return */
+    /* read/write entry */
     int result = ((mode == READ) ? read_entry : write_entry)(entry_fd, entry);
     close(entry_fd);
     return result;
@@ -105,60 +115,42 @@ int db_io_op_usr_ent(entry_t *entry, const char mode) {
 
 
 int db_creat_usr_tbl(entry_t *entry) {
-    /* creates a table for the given username */
-    char error[MAX_STR_SIZE];   /* message displayed in perror */
-
+    /*** Creates a table for the given username (entire structure) ***/
     /* set up the path to open table directory for given username */
-    char table_path[strlen(DB_DIR) + strlen(entry->username) + 8];
-    sprintf(table_path, "%s/%s-table", DB_DIR, entry->username);
+    char user_table_path[strlen(DB_DIR) + strlen(entry->username) + 8];
+    sprintf(user_table_path, "%s/%s-table", DB_DIR, entry->username);
 
     /* set up the path for the userdata entry to be created */
-    char ud_entry_path[strlen(table_path) + strlen(USERDATA_ENTRY) + 2];
-    sprintf(ud_entry_path, "%s/%s", table_path, USERDATA_ENTRY);
+    char ud_entry_path[strlen(user_table_path) + strlen(USERDATA_ENTRY) + 2];
+    sprintf(ud_entry_path, "%s/%s", user_table_path, USERDATA_ENTRY);
 
     /* set up the path for the userdata entry to be created */
-    char p_msg_table_path[strlen(table_path) + strlen(PEND_MSGS_TABLE) + 2];
-    sprintf(p_msg_table_path, "%s/%s", table_path, PEND_MSGS_TABLE);
+    char p_msg_table_path[strlen(user_table_path) + strlen(PEND_MSGS_TABLE) + 2];
+    sprintf(p_msg_table_path, "%s/%s", user_table_path, PEND_MSGS_TABLE);
 
-    /* store errno and reset it */
-    int errno_old = errno; errno = 0;
+    /* try to create username directory */
+    DIR *user_table;
+    int result = open_directory(user_table_path, CREATE, &user_table);
+    if (result == DBMS_ERR_EXISTS) {       /* user already exists */
+        closedir(user_table);
+        return DBMS_ERR_EXISTS;
+    } else if (result < 0) return DBMS_ERR_ANY;     /* some other error */
 
-    /* try to open username directory to see whether it exists */
-    DIR *user_table = opendir(table_path);
-    if (!user_table) {
-        if (errno == ENOENT) {
-            /* given username doesn't exist, so its table can be created */
-            user_table = open_directory(table_path, CREATE);
-            if (!user_table) return DBMS_ERR_ANY;
-            closedir(user_table);
+    /* at this point user table has been successfully created, so we continue */
 
-            /* create userdata entry for given username */
-            if (db_io_op_usr_ent(entry, CREATE) != DBMS_SUCCESS) return DBMS_ERR_ANY;
+    /* create userdata entry for given username */
+    if (db_io_op_usr_ent(entry, CREATE) < 0) return DBMS_ERR_ANY;
 
-            /* now create pending messages table, within username table */
-            DIR *p_msg_table = open_directory(p_msg_table_path, CREATE);
-            if (!p_msg_table) return DBMS_ERR_ANY;
-            closedir(p_msg_table);
-
-            errno = errno_old;  /* restore errno */
-            return DBMS_SUCCESS;
-        }
-        /* given username does exist, some other opendir error */
-        sprintf(error, "Could not open %s", table_path); perror(error);
-        errno = errno_old;  /* restore errno */
-        return DBMS_ERR_ANY;
-    }
-
-    /* given username does exist, so we can't create it */
-    closedir(user_table);
-    errno = errno_old;  /* restore errno */
-    return DBMS_ERR_ENT_EXISTS;
+    /* now create pending messages table, within username table */
+    DIR *p_msg_table;
+    if (open_directory(p_msg_table_path, CREATE, &p_msg_table) < 0) return DBMS_ERR_ANY;
+    closedir(p_msg_table);
+    return DBMS_SUCCESS;
 }
 
 
 int db_del_usr_tbl(const char *const username) {
-    /* deletes a given username table if it exists */
-
+    /*** Deletes a given username table if it exists ***/
     /* set up the path to remove table directories for given username */
     char table_path[strlen(DB_DIR) + strlen(username) + 8];
     sprintf(table_path, "%s/%s-table", DB_DIR, username);

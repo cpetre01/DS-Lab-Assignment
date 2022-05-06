@@ -1,7 +1,7 @@
 #ifndef SERVICES_H
 #define SERVICES_H
 
-/* services */
+/*** Services ***/
 void init_db(reply_t *reply);
 void insert_item(request_t *request, reply_t *reply);
 void get_item(request_t *request, reply_t *reply);

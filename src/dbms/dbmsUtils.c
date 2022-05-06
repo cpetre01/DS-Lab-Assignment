@@ -9,7 +9,7 @@
 
 
 int open_file(const char *const path, const char mode) {
-    /* open given path file with given mode */
+    /*** Open given path file with given mode ***/
     int fd;
 
     switch (mode) {
@@ -18,71 +18,50 @@ int open_file(const char *const path, const char mode) {
         case MODIFY: fd = open(path, O_WRONLY | O_TRUNC); break;
         default:
             fprintf(stderr, "Invalid open mode");
-            return DBMS_ERR_INV_ARGS;
+            return GEN_ERR_INV_ARGS;
     }
 
     return fd;
 }
 
 
-DIR *open_directory(const char *const path, const char mode) {
-    /* returns a DIR pointer for the given path */
+int open_directory(const char *const path, const char mode, DIR **directory) {
+    /*** Open given path as a directory with given mode and map it to given DIR **directory ***/
+    errno = 0;
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
-    /* check given mode */
-    if (mode != CREATE && mode != READ) {
-        fprintf(stderr, "Invalid open mode");
-        return NULL;
-    }
-
-    /* store errno and reset it */
-    int errno_old = errno; errno = 0;
+    CHECK_ARGS(mode != CREATE && mode != READ && mode != OVERWRITE, "Invalid Open Mode")
 
     /* try to open directory */
-    DIR *directory = opendir(path);
+    *directory = opendir(path);
 
-    if (!directory) {
+    if (!*directory) {
         if (errno == ENOENT) {      /* directory doesn't exist */
-            if (mode == CREATE) {   /* so create it */
-                CHECK_ERROR(mkdir(path, S_IRWXU), NULL)
-//                if (mkdir(path, S_IRWXU) == -1) {
-//                    sprintf(error, "%s directory could not be created", path); perror(error);
-//                    errno = errno_old;  /* restore errno */
-//                    return NULL;
-//                }
+            if (mode == CREATE || mode == OVERWRITE) {   /* so create it */
+                CHECK_FUNC_ERROR_WITH_ERRNO(mkdir(path, S_IRWXU), DBMS_ERR_ANY)
                 /* and try to open it */
-                directory = opendir(path);
-                if (!directory) {
-                    sprintf(error, "Could not open %s directory after creating it", path); perror(error);
-                    errno = errno_old;  /* restore errno */
-                    return NULL;
-                }
-            } else {
-                sprintf(error, "%s directory doesn't exist", path); perror(error);
-                errno = errno_old;  /* restore errno */
-                return NULL;
-            }
-        } else {    /* some other opendir error */
+                *directory = opendir(path);
+                CHECK_ERROR_WITH_ERRNO(!*directory, "Could not open directory", DBMS_ERR_ANY)
+                return DBMS_SUCCESS;
+            } else return DBMS_ERR_NOT_EXISTS; /* mode == READ */
+        } else {    /* some other opendir() error */
             sprintf(error, "Could not open %s directory", path); perror(error);
-            errno = errno_old;  /* restore errno */
-            return NULL;
+            return DBMS_ERR_ANY;
         }
     }
 
-    errno = errno_old;  /* restore errno */
-    return directory;
+    /* directory exists, depending on given mode, this is success or error */
+    return ((mode == CREATE) ? DBMS_ERR_EXISTS : DBMS_SUCCESS);
 }
 
 
 /* adapted from:
  * https://codereview.stackexchange.com/questions/263536/c-delete-files-and-directories-recursively-if-directory */
 int remove_recursive(const char *const path) {
-    /* deletes the given path, whether it be a file or a directory;
-     * it deletes inner contents in case it's a directory */
+    /*** Deletes the given path, whether it be a file or a directory;
+     * it deletes inner contents in case it's a directory ***/
+    errno = 0;
     char error[MAX_STR_SIZE];   /* message displayed in perror */
-
-    /* store errno and reset it */
-    int errno_old = errno; errno = 0;
 
     /* first try to open it as a directory */
     DIR *const directory = opendir(path);
@@ -101,13 +80,7 @@ int remove_recursive(const char *const path) {
             /* set up a function pointer to call the appropriate function:
              * remove if the current entry is a file, or a recursive call if it is a directory */
             int (*const rm)(const char *) = entry->d_type == DT_DIR ? remove_recursive : remove;
-
-            if (rm(entry_path) == -1) {
-                sprintf(error, "Error removing %s", entry_path); perror(error);
-                closedir(directory);
-                errno = errno_old;  /* restore errno */
-                return DBMS_ERR_ANY;
-            }
+            CHECK_RM_ERROR(rm(entry_path), DBMS_ERR_ANY)
         }
         closedir(directory);
     }
@@ -116,18 +89,16 @@ int remove_recursive(const char *const path) {
     /* check whether it exists */
     if (errno == ENOENT) {
         sprintf(error, "%s does not exist", path); perror(error);
-        errno = errno_old;  /* restore errno */
-        return DBMS_ERR_ENT_NOT_EXISTS;
+        return DBMS_ERR_NOT_EXISTS;
     }
 
     /* it's not a directory, but it exists, so it must be just a file */
-    errno = errno_old;  /* restore errno */
     return remove(path);
 }
 
 
 int read_entry(const int entry_fd, entry_t *entry) {
-    /* reads an entry from a given open entry fd */
+    /*** Reads an entry from a given open entry fd ***/
     ssize_t bytes_read;     /* used for error handling of read_bytes call */
 
     /* read entry */
@@ -147,7 +118,7 @@ int read_entry(const int entry_fd, entry_t *entry) {
 
 
 int write_entry(const int entry_fd, entry_t *entry) {
-    /* writes an entry to a given open entry fd */
+    /*** Writes an entry to a given open entry fd ***/
     ssize_t bytes_written;     /* used for error handling of write_bytes call */
 
     /* write entry */

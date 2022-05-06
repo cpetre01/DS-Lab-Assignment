@@ -4,7 +4,7 @@
 #include "DS-Lab-Assignment/dbms/dbms.h"
 
 
-int main(int argc, char **argv) {
+int test(void) {
     if (db_init_db() == DBMS_ERR_ANY) return -1;
 
     printf("TEST: create user\n");
@@ -25,12 +25,14 @@ int main(int argc, char **argv) {
     strcpy(entry_test_load_created.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_created, READ);
 
-    printf("%c, %s, %u, %u\n", entry_test_load_created.user.status, entry_test_load_created.user.ip,
+    printf("%u, %s, %u, %u\n", entry_test_load_created.user.status, entry_test_load_created.user.ip,
            entry_test_load_created.user.port, entry_test_load_created.user.last_msg_id);
+
+    int user_exists = db_user_exists(entry_test_create.username);
+    printf("user_exists = %i\n", user_exists);
 
     printf("TEST: modify user\n");
     /* modify created user */
-    /* create a user */
     entry_t entry_test_modify;
     strcpy(entry_test_modify.username, "cosmin");
     entry_test_modify.type = ENT_TYPE_UD;
@@ -46,12 +48,18 @@ int main(int argc, char **argv) {
     strcpy(entry_test_load_modified.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_modified, READ);
 
-    printf("%c, %s, %u, %u\n", entry_test_load_modified.user.status, entry_test_load_modified.user.ip,
+    printf("%u, %s, %u, %u\n", entry_test_load_modified.user.status, entry_test_load_modified.user.ip,
            entry_test_load_modified.user.port, entry_test_load_modified.user.last_msg_id);
+
+    user_exists = db_user_exists(entry_test_create.username);
+    printf("user_exists = %i\n", user_exists);
 
     printf("TEST: delete user\n");
     /* delete created user */
     db_del_usr_tbl("cosmin");
+
+    user_exists = db_user_exists(entry_test_create.username);
+    printf("user_exists = %i\n", user_exists);
 
     /* read deleted user */
     entry_t entry_test_load_deleted;
@@ -59,8 +67,13 @@ int main(int argc, char **argv) {
     strcpy(entry_test_load_deleted.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_deleted, READ);
 
-    printf("%c, %s, %u, %u\n", entry_test_load_deleted.user.status, entry_test_load_deleted.user.ip,
+    printf("%u, %s, %u, %u\n", entry_test_load_deleted.user.status, entry_test_load_deleted.user.ip,
            entry_test_load_deleted.user.port, entry_test_load_deleted.user.last_msg_id);
 
     return 0;
+}
+
+
+int main(void) {
+    return test();
 }

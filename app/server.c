@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <signal.h>
-#include "DS-Lab-Assignment/utils.h"
+//#include "DS-Lab-Assignment/utils.h"
 #include "DS-Lab-Assignment/netUtils.h"
 #include "DS-Lab-Assignment/dbms/dbms.h"
 #include "DS-Lab-Assignment/services.h"
@@ -48,19 +48,21 @@ void set_server_error_code_std(reply_t *reply, const int req_error_code) {
 void *service_thread(void *args) {
     while (TRUE) {
         int client_socket;
-        /* copy client socket descriptor and free the original */
+
+        /* copy client socket descriptor from connection queue */
         pthread_mutex_lock(&mutex_conn_q);
 
         /* there are no connections to handle, so sleep */
         while (conn_q_size == 0)
             pthread_cond_wait(&cond_conn_q_not_empty, &mutex_conn_q);
 
+        /* deque client socket descriptor */
         client_socket = conn_q[service_th_pos];
         service_th_pos = (service_th_pos + 1) % MAX_CONN_BACKLOG;
         conn_q_size -= 1;
 
-        if (conn_q_size == MAX_CONN_BACKLOG - 1)
-            pthread_cond_signal(&cond_conn_q_not_full);
+        /* signal that there is space for new connections */
+        if (conn_q_size == MAX_CONN_BACKLOG - 1) pthread_cond_signal(&cond_conn_q_not_full);
 
         pthread_mutex_unlock(&mutex_conn_q);
 
@@ -85,6 +87,31 @@ void *service_thread(void *args) {
             if (recv_string(client_socket, request.username) == -1) continue;
         }
 
+        if (!strcmp(request.op_code, SEND)) {
+            /* receive stuff */
+            if (recv_string(client_socket, request.sender) == -1) continue;
+            if (recv_string(client_socket, request.receiver) == -1) continue;
+            if (recv_string(client_socket, request.message.content) == -1) continue;
+
+            entry_t entry;
+            /* check that both users exist */
+            int sender_exists = db_user_exists(request.sender);
+            int receiver_exists = db_user_exists(request.receiver);
+
+            if (sender_exists == FALSE || receiver_exists == FALSE) {
+                reply.server_error_code = SRV_ERR_SEND_USR_NOT_EXISTS;
+            } else if (sender_exists < 0 || receiver_exists < 0) {     /* some other error */
+                reply.server_error_code = SRV_ERR_SEND_ANY;
+            } else {    /* set up first ACK to be sent to sender client */
+                reply.server_error_code = SRV_SUCCESS;
+            }
+
+            /* send reply to sender client */
+            if (send_server_reply(client_socket, &reply) == -1) continue;
+
+            /* message passing */
+
+        }
 //        /* check whether client request is valid and execute it */
 //        switch (request.header.op_code) {
 //            case INIT:
@@ -179,14 +206,13 @@ int main(int argc, char **argv) {
     int server_sd, client_sd;
     int val = 1;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: server -p <port>\n"); return -1;
+    if (argc != 3 || strcmp(argv[1], "-p") != 0) {
+        fprintf(stderr, "Usage: server -p <port>\n");
+        return -1;
     }
 
     int server_port;
-    if (str_to_num(argv[1], (void *) &server_port, INT) == -1) {
-        perror("Invalid server port"); return -1;
-    }
+    CHECK_ARGS((str_to_num(argv[2], (void *) &server_port, INT) < 0), "Invalid Port")
 
     /* set up connection queue */
     pthread_mutex_init(&mutex_conn_q, NULL);
@@ -233,25 +259,17 @@ int main(int argc, char **argv) {
         pthread_create(&thread_pool[i], &th_attr, service_thread, NULL);
     }
 
-//    doesn't work for some reason, it prints a '
     /* get local IP address to print initial server log message */
-    struct sockaddr t;
-    socklen_t l = sizeof t;
-    if (getsockname(server_sd, &t, &l) == -1) {
+    char hostname[256];
+    if (gethostname(hostname, 256) == -1) {
         perror("Server get local IP address error"); return -1;
     }
-    printf("s> ");
-    printf("init server %s:%i\n", t.sa_data, server_port);
+    printf("s> init server %s:%i\n", hostname, server_port);
     while (TRUE) {
-//        printf("Waiting for connections...\n");
+        CHECK_FUNC_ERROR_WITH_ERRNO(accept(server_sd, (struct sockaddr *) &client_addr, &addr_size), -1)
 
-        client_sd = accept(server_sd, (struct sockaddr *) &client_addr, &addr_size);
-        if (client_sd == -1) {
-            perror("Server accept error"); return -1;
-        }
-
-        printf("Accepted connection IP: %s    Port: %d\n",
-               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+//        printf("Accepted connection IP: %s    Port: %d\n",
+//               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
         /* add connection to conn_q backlog */
         pthread_mutex_lock(&mutex_conn_q);
@@ -267,8 +285,7 @@ int main(int argc, char **argv) {
         conn_q_size += 1;
 
         /* signal that there are connections to handle */
-        if (conn_q_size == 1)
-            pthread_cond_signal(&cond_conn_q_not_empty);
+        if (conn_q_size == 1) pthread_cond_signal(&cond_conn_q_not_empty);
 
         pthread_mutex_unlock(&mutex_conn_q);
     } // END while
