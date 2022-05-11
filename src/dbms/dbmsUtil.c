@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include "DS-Lab-Assignment/dbms/dbmsUtils.h"
+#include "DS-Lab-Assignment/dbms/dbmsUtil.h"
 
 
 int open_file(const char *const path, const char mode) {
@@ -28,6 +28,7 @@ int open_file(const char *const path, const char mode) {
 int open_directory(const char *const path, const char mode, DIR **directory) {
     /*** Open given path as a directory with given mode and map it to given DIR **directory ***/
     errno = 0;
+    int ret_val;    /* needed for error-checking macros */
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
     CHECK_ARGS(mode != CREATE && mode != READ && mode != OVERWRITE, "Invalid Open Mode")
@@ -61,6 +62,7 @@ int remove_recursive(const char *const path) {
     /*** Deletes the given path, whether it be a file or a directory;
      * it deletes inner contents in case it's a directory ***/
     errno = 0;
+    int ret_val;    /* needed for error-checking macros */
     char error[MAX_STR_SIZE];   /* message displayed in perror */
 
     /* first try to open it as a directory */

@@ -1,14 +1,20 @@
 # libraries
 
-# netUtils library
-add_library(${TARGET_NET_UTILS} STATIC)
-target_sources(${TARGET_NET_UTILS}
-        PRIVATE netUtils.c
-        PUBLIC  utils.c
+# netUtil library
+add_library(${TARGET_NET_UTIL} STATIC)
+target_sources(${TARGET_NET_UTIL}
+        PRIVATE netUtil.c
+        PUBLIC util.c
         )
-# using PUBLIC propagates these directories to server and keys targets
-# which need it to include utils.h & netUtils.h
-target_include_directories(${TARGET_NET_UTILS} PUBLIC ../include)
+target_include_directories(${TARGET_NET_UTIL} PUBLIC ../include)
+
+# services library
+add_library(${TARGET_SERVICES} STATIC)
+target_sources(${TARGET_SERVICES} PRIVATE services.c)
+target_link_libraries(${TARGET_SERVICES}
+        PUBLIC  ${TARGET_NET_UTIL}
+                ${TARGET_DBMS}
+        )
 
 # dbms library code
 add_subdirectory(dbms)

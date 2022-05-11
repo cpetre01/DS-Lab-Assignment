@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.13)
 
 project(DS-Lab-Assignment
         VERSION 0.1
         DESCRIPTION "Main Lab Assignment"
-        LANGUAGES C CXX)
+        LANGUAGES C CXX
+        )
 
 # set target names
 
@@ -11,8 +12,9 @@ project(DS-Lab-Assignment
 set(TARGET_SERVER server)
 
 # libraries
-set(TARGET_NET_UTILS netUtils)
+set(TARGET_NET_UTIL netUtil)
 set(TARGET_DBMS dbms)
+set(TARGET_SERVICES services)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(CMAKE_C_STANDARD 11)

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "DS-Lab-Assignment/utils.h"
+#include "DS-Lab-Assignment/util.h"
 #include "DS-Lab-Assignment/dbms/dbms.h"
 
 
@@ -13,7 +13,7 @@ int test(void) {
     strcpy(entry_test_create.username, "cosmin");
     entry_test_create.type = ENT_TYPE_UD;
     entry_test_create.user.status = STATUS_DCN;
-    strcpy(entry_test_create.user.ip, "");
+//    strcpy(entry_test_create.user.ip, "");
     entry_test_create.user.port = 0;
     entry_test_create.user.last_msg_id = 1;
 
@@ -25,8 +25,8 @@ int test(void) {
     strcpy(entry_test_load_created.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_created, READ);
 
-    printf("%u, %s, %u, %u\n", entry_test_load_created.user.status, entry_test_load_created.user.ip,
-           entry_test_load_created.user.port, entry_test_load_created.user.last_msg_id);
+//    printf("%u, %s, %u, %u\n", entry_test_load_created.user.status, entry_test_load_created.user.ip,
+//           entry_test_load_created.user.port, entry_test_load_created.user.last_msg_id);
 
     int user_exists = db_user_exists(entry_test_create.username);
     printf("user_exists = %i\n", user_exists);
@@ -37,7 +37,7 @@ int test(void) {
     strcpy(entry_test_modify.username, "cosmin");
     entry_test_modify.type = ENT_TYPE_UD;
     entry_test_modify.user.status = STATUS_CN;
-    strcpy(entry_test_modify.user.ip, "localhost");
+//    strcpy(entry_test_modify.user.ip, "localhost");
     entry_test_modify.user.port = 80;
     entry_test_modify.user.last_msg_id = 999;
     db_io_op_usr_ent(&entry_test_modify, MODIFY);
@@ -48,8 +48,8 @@ int test(void) {
     strcpy(entry_test_load_modified.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_modified, READ);
 
-    printf("%u, %s, %u, %u\n", entry_test_load_modified.user.status, entry_test_load_modified.user.ip,
-           entry_test_load_modified.user.port, entry_test_load_modified.user.last_msg_id);
+//    printf("%u, %s, %u, %u\n", entry_test_load_modified.user.status, entry_test_load_modified.user.ip,
+//           entry_test_load_modified.user.port, entry_test_load_modified.user.last_msg_id);
 
     user_exists = db_user_exists(entry_test_create.username);
     printf("user_exists = %i\n", user_exists);
@@ -67,8 +67,8 @@ int test(void) {
     strcpy(entry_test_load_deleted.username, "cosmin");
     db_io_op_usr_ent(&entry_test_load_deleted, READ);
 
-    printf("%u, %s, %u, %u\n", entry_test_load_deleted.user.status, entry_test_load_deleted.user.ip,
-           entry_test_load_deleted.user.port, entry_test_load_deleted.user.last_msg_id);
+//    printf("%u, %s, %u, %u\n", entry_test_load_deleted.user.status, entry_test_load_deleted.user.ip,
+//           entry_test_load_deleted.user.port, entry_test_load_deleted.user.last_msg_id);
 
     return 0;
 }

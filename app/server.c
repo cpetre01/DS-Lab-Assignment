@@ -5,11 +5,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <signal.h>
-//#include "DS-Lab-Assignment/utils.h"
-#include "DS-Lab-Assignment/netUtils.h"
+#include "DS-Lab-Assignment/netUtil.h"
 #include "DS-Lab-Assignment/dbms/dbms.h"
 #include "DS-Lab-Assignment/services.h"
 
@@ -68,124 +69,36 @@ void *service_thread(void *args) {
 
         /* handle connection now */
         request_t request;
+        reply_t reply;
+        entry_t entry;
+
         /* receive op_code */
         if (recv_string(client_socket, request.op_code) == -1) continue;
-
-        /* set up server reply */
-        reply_t reply;
 
         //test operation, to test client
         if (!strcmp(request.op_code, TEST)) {
             fprintf(stderr, "test op\n");
             reply.server_error_code = TEST_ERR_CODE;
+
             /* send server reply */
-            if (send_server_reply(client_socket, &reply) == -1) continue;
+            send_server_reply(client_socket, &reply);
+            continue;
+        } else if (!strcmp(request.op_code, REGISTER)) {
+            srv_register(client_socket, &request, &reply, &entry);
+            continue;
+        } else if (!strcmp(request.op_code, UNREGISTER)) {
+            srv_unregister(client_socket, &request, &reply);
+            continue;
+        } else if (!strcmp(request.op_code, CONNECT)) {
+            srv_connect(client_socket, &request, &reply, &entry);
+            continue;
+        } else if (!strcmp(request.op_code, DISCONNECT)) {
+            srv_disconnect(client_socket, &request, &reply, &entry);
+            continue;
+        } else if (!strcmp(request.op_code, SEND)) {
+            srv_send(client_socket, &request, &reply, &entry);
+            continue;
         }
-
-        if (!strcmp(request.op_code, REGISTER) || !strcmp(request.op_code, UNREGISTER) ||
-        !strcmp(request.op_code, CONNECT) || !strcmp(request.op_code, DISCONNECT)) {
-            if (recv_string(client_socket, request.username) == -1) continue;
-        }
-
-        if (!strcmp(request.op_code, SEND)) {
-            /* receive stuff */
-            if (recv_string(client_socket, request.sender) == -1) continue;
-            if (recv_string(client_socket, request.receiver) == -1) continue;
-            if (recv_string(client_socket, request.message.content) == -1) continue;
-
-            entry_t entry;
-            /* check that both users exist */
-            int sender_exists = db_user_exists(request.sender);
-            int receiver_exists = db_user_exists(request.receiver);
-
-            if (sender_exists == FALSE || receiver_exists == FALSE) {
-                reply.server_error_code = SRV_ERR_SEND_USR_NOT_EXISTS;
-            } else if (sender_exists < 0 || receiver_exists < 0) {     /* some other error */
-                reply.server_error_code = SRV_ERR_SEND_ANY;
-            } else {    /* set up first ACK to be sent to sender client */
-                reply.server_error_code = SRV_SUCCESS;
-            }
-
-            /* send reply to sender client */
-            if (send_server_reply(client_socket, &reply) == -1) continue;
-
-            /* message passing */
-
-        }
-//        /* check whether client request is valid and execute it */
-//        switch (request.header.op_code) {
-//            case INIT:
-//                /* execute client request */
-//                init_db(&reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1) continue;
-//                break;
-//            case SET_VALUE:
-//                /* receive rest of client request */
-//                if (recv_key(client_socket, &request.item) == -1 ||
-//                recv_values(client_socket, &request.item) == -1) continue;
-//
-//                /* execute client request */
-//                insert_item(&request, &reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1) continue;
-//                break;
-//            case GET_VALUE:
-//                /* receive rest of client request */
-//                if (recv_key(client_socket, &request.item) == -1) continue;
-//
-//                /* execute client request */
-//                get_item(&request, &reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1 ||
-//                        send_values(client_socket, &reply.item) == -1) continue;
-//                break;
-//            case MODIFY_VALUE:
-//                /* receive rest of client request */
-//                if (recv_key(client_socket, &request.item) == -1 ||
-//                    recv_values(client_socket, &request.item) == -1) continue;
-//
-//                /* execute client request */
-//                modify_item(&request, &reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1) continue;
-//                break;
-//            case DELETE_KEY:
-//                /* receive rest of client request */
-//                if (recv_key(client_socket, &request.item) == -1) continue;
-//
-//                /* execute client request */
-//                delete_item(&request, &reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1) continue;
-//                break;
-//            case EXIST:
-//                /* receive rest of client request */
-//                if (recv_key(client_socket, &request.item) == -1) continue;
-//
-//                /* execute client request */
-//                item_exists(&request, &reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1) continue;
-//                break;
-//            case NUM_ITEMS:
-//                /* execute client request */
-//                get_num_items(&reply);
-//
-//                /* send server reply */
-//                if (send_server_reply(client_socket, &reply) == -1 ||
-//                send_num_items(client_socket, &reply) == -1) continue;
-//                break;
-//            default:    /* invalid operation */
-//                fprintf(stderr, "Requested invalid operation\n");
-//                close(client_socket); continue;
-//        } // end switch
     } // end outer while
 }
 
@@ -201,6 +114,9 @@ void shutdown_server() {
 
 
 int main(int argc, char **argv) {
+    int ret_val;    /* needed for error-checking macros */
+    struct hostent *server_host;
+    struct in_addr server_in;
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     int server_sd, client_sd;
@@ -208,7 +124,7 @@ int main(int argc, char **argv) {
 
     if (argc != 3 || strcmp(argv[1], "-p") != 0) {
         fprintf(stderr, "Usage: server -p <port>\n");
-        return -1;
+        return GEN_ERR_INV_ARGS;
     }
 
     int server_port;
@@ -234,25 +150,21 @@ int main(int argc, char **argv) {
     sigemptyset(&keyboard_interrupt.sa_mask);
     sigaction(SIGINT, &keyboard_interrupt, NULL);
 
-    /* get server up & running */
-    if ((server_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-        perror("Can't create server socket"); return -1;
-    }
+    /* set up DB */
+    CHECK_FUNC_ERROR(db_init_db(), GEN_ERR_ANY)
 
-    setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, (char *) &val, sizeof(int));
+    /* get server up & running */
+    CHECK_FUNC_ERROR_WITH_ERRNO(server_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP), GEN_ERR_ANY)
+    CHECK_SOCK_ERROR(setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR,
+                                (char *) &val,sizeof(int)), GEN_ERR_ANY, server_sd)
 
     bzero((char *) &server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(server_port);
 
-    if (bind(server_sd, (struct sockaddr *) &server_addr, sizeof server_addr) == -1) {
-        perror("Server socket binding error"); return -1;
-    }
-
-    if (listen(server_sd, LISTEN_BACKLOG) == -1) {
-        perror("Server listen error"); return -1;
-    }
+    CHECK_SOCK_ERROR(bind(server_sd, (struct sockaddr *) &server_addr, sizeof server_addr), GEN_ERR_ANY, server_sd)
+    CHECK_SOCK_ERROR(listen(server_sd, LISTEN_BACKLOG), GEN_ERR_ANY, server_sd)
 
     /* now create thread pool */
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
@@ -261,13 +173,16 @@ int main(int argc, char **argv) {
 
     /* get local IP address to print initial server log message */
     char hostname[256];
-    if (gethostname(hostname, 256) == -1) {
-        perror("Server get local IP address error"); return -1;
-    }
-    printf("s> init server %s:%i\n", hostname, server_port);
-    while (TRUE) {
-        CHECK_FUNC_ERROR_WITH_ERRNO(accept(server_sd, (struct sockaddr *) &client_addr, &addr_size), -1)
+    CHECK_FUNC_ERROR_WITH_ERRNO(gethostname(hostname, 256), GEN_ERR_ANY)
+    server_host = gethostbyname(hostname);
+    CHECK_ERROR_WITH_ERRNO(!server_host, "Server gethostbyname error", GEN_ERR_ANY)
+    memcpy(&server_in.s_addr,*(server_host->h_addr_list),sizeof(server_in.s_addr));
 
+    printf("s> init server %s:%i\n", inet_ntoa(server_in), server_port); fflush(stdout);
+
+    while (TRUE) {      /* main server loop: accept connections from clients and queue them */
+        CHECK_FUNC_ERROR_WITH_ERRNO(client_sd = accept(server_sd, (struct sockaddr *) &client_addr,
+                &addr_size), -1)
 //        printf("Accepted connection IP: %s    Port: %d\n",
 //               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 

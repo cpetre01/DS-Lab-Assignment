@@ -2,7 +2,7 @@
 #define DBMS_UTILS_H
 
 #include <dirent.h>
-#include "DS-Lab-Assignment/utils.h"
+#include "DS-Lab-Assignment/util.h"
 
 /*** Functions called internally in dbms module ***/
 int open_file(const char *path, char mode);

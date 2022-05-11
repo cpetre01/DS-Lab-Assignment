@@ -123,7 +123,7 @@ int read_line(int d, char *buffer, int buf_space);
 
 /***** General Function Error Checking *****/
 #define CHECK_FUNC_ERROR(FUNCTION_CALL, RETURN_ERROR) \
-    int ret_val = (FUNCTION_CALL); \
+    ret_val = (FUNCTION_CALL); \
     if (ret_val < 0) { \
         fprintf(stderr, "Runtime Error: %s\n returned %d\n at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
         return (RETURN_ERROR); \
@@ -131,7 +131,7 @@ int read_line(int d, char *buffer, int buf_space);
 
 /***** General Function Error Checking With perror() Call To Print errno Message *****/
 #define CHECK_FUNC_ERROR_WITH_ERRNO(FUNCTION_CALL, RETURN_ERROR) \
-    int ret_val = (FUNCTION_CALL); \
+    ret_val = (FUNCTION_CALL); \
     if (ret_val < 0) { \
         fprintf(stderr, "Runtime Error: %s\n returned %d\n at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
         perror(#FUNCTION_CALL); \
@@ -140,7 +140,7 @@ int read_line(int d, char *buffer, int buf_space);
 
 /***** Remove File/Directory Function Error Checking With perror() Call To Print errno Message *****/
 #define CHECK_RM_ERROR(FUNCTION_CALL, RETURN_ERROR) \
-    int ret_val = (FUNCTION_CALL); \
+    ret_val = (FUNCTION_CALL); \
     if (ret_val < 0) { \
         fprintf(stderr, "Runtime Error: %s\n returned %d\n at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
         perror(#FUNCTION_CALL); \
@@ -149,12 +149,12 @@ int read_line(int d, char *buffer, int buf_space);
     }
 
 /***** Socket Function Error Checking With perror() Call To Print errno Message *****/
-#define CHECK_SOCK_ERROR(FUNCTION_CALL, RETURN_ERROR) \
-    int ret_val = (FUNCTION_CALL); \
+#define CHECK_SOCK_ERROR(FUNCTION_CALL, RETURN_ERROR, SOCKET) \
+    ret_val = (FUNCTION_CALL); \
     if (ret_val < 0) { \
         fprintf(stderr, "Runtime Error: %s\n returned %d\n at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
         perror(#FUNCTION_CALL); \
-        close(socket); \
+        close(SOCKET); \
         return (RETURN_ERROR); \
     }
 
@@ -191,16 +191,17 @@ typedef struct {
 
 typedef struct {
     /*** Server Reply ***/
-    char server_error_code;     /* error code returned by the server; client interprets it
- *                              to figure out whether the transaction was successful */
+    unsigned char server_error_code;        /* error code returned by the server; client interprets it
+ *                                          to figure out whether the transaction was successful */
 } reply_t;
 
 #include <stdint.h>
+#include <netinet/in.h>
 
 struct userdata {
     /*** User Data Stored In DB ***/
     unsigned char status;   /* STATUS_DCN := disconnected; STATUS_CN := connected */
-    char ip[16];            /* client IP for receiving thread */
+    struct in_addr ip;      /* client IP for receiving thread */
     uint16_t port;          /* client port for receiving thread */
     unsigned int last_msg_id;
 };

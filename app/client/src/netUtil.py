@@ -3,7 +3,8 @@ to server socket, as well as connecting to the socket"""
 
 # ******************** IMPORTS ***********************
 import socket
-from src import utils
+import threading
+from src import util
 
 # ******************** FUNCTIONS *********************
 
@@ -73,27 +74,34 @@ def receive_server_response(sock):
     return response
 
 
-def listen_and_accept(sock):
+def listen_and_accept(sock, event):
     """Function in charge of listening at a free port and accepting the connection, receving server replies """
     sock.listen(1)
     # first, create the reply
-    reply = utils.Reply()
+    reply = util.Reply()
     while True:
         # then, accept the connection
         connection, client_address = sock.accept()
+
+        # shut down thread if event is set
+        if event.isSet():
+            connection.close()
+            sock.close()
+            return
+
         try:
             # receive the operation code of the server response
             reply.header._op_code = receive_server_response(sock)
             # in the case of a message:
-            if reply.header._op_code == utils.SEND_MESSAGE:
+            if reply.header._op_code == util.SEND_MESSAGE:
                 reply.header._username = receive_server_response(sock)
                 reply.item._message_id = receive_server_response(sock)
                 reply.item._message = receive_server_response(sock)
-                print("c> MESSAGE ", reply.item._message_id, "FROM", reply.header._username, ":\n",  reply.item._message,"\n", "END")
+                print(f"c> MESSAGE {reply.item._message_id} FROM {reply.header._username}:\n {reply.item._message}\nEND")
             # in case of a message acknowledgement:
-            elif reply.header._op_code == utils.SEND_MESS_ACK:
+            elif reply.header._op_code == util.SEND_MESS_ACK:
                 reply.item._message_id = receive_server_response(sock)
-                print("c> SEND MESSAGE ", reply.item._message_id, " OK")
+                print(f"c> SEND MESSAGE {reply.item._message_id} OK")
             else:
                 print("ERROR, INVALID OPERATION")
                 break

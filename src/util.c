@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include "DS-Lab-Assignment/utils.h"
+#include "DS-Lab-Assignment/util.h"
 
 
 /**** Number Casting Stuff ****/

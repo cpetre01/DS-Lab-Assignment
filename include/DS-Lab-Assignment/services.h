@@ -1,12 +1,13 @@
 #ifndef SERVICES_H
 #define SERVICES_H
 
+#include "DS-Lab-Assignment/util.h"
+
 /*** Services ***/
-void init_db(reply_t *reply);
-void insert_item(request_t *request, reply_t *reply);
-void get_item(request_t *request, reply_t *reply);
-void modify_item(request_t *request, reply_t *reply);
-void delete_item(request_t *request, reply_t *reply);
-void item_exists(request_t *request, reply_t *reply);
+void srv_register(int socket, request_t *request, reply_t *reply, entry_t *entry);
+void srv_unregister(int socket, request_t *request, reply_t *reply);
+void srv_connect(int socket, request_t *request, reply_t *reply, entry_t *entry);
+void srv_disconnect(int socket, request_t *request, reply_t *reply, entry_t *entry);
+void srv_send(int socket, request_t *request, reply_t *reply, entry_t *entry);
 
 #endif //SERVICES_H

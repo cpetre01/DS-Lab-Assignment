@@ -3,12 +3,13 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
-#include "DS-Lab-Assignment/dbms/dbmsUtils.h"
+#include "DS-Lab-Assignment/dbms/dbmsUtil.h"
 #include "DS-Lab-Assignment/dbms/dbms.h"
 
 
 int db_init_db(void) {
     /*** Initialize the DB: make sure that the DB db exists, create it if it doesn't ***/
+    int ret_val;    /* needed for error-checking macros */
     DIR * db;
     CHECK_FUNC_ERROR(open_directory(DB_DIR, OVERWRITE, &db), DBMS_ERR_ANY)
 
@@ -19,6 +20,7 @@ int db_init_db(void) {
 
 int db_get_num_pend_msgs(const char *username) {
     /*** Returns the number of messages pending to be sent to a given username ***/
+    int ret_val;    /* needed for error-checking macros */
     struct dirent *entry;
     int num_pend_msgs = 0;
 

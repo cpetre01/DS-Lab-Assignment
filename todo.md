@@ -1,11 +1,9 @@
 #TODO
-figure out how to store client IP
+figure out how to store client IP (need to test it)
 
-client receiving thread (server-like)
+client receiving thread (server-like) (need to test it)
 
-client commands
-
-server functions
+server functions (WIP)
 
 tests
 
