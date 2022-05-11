@@ -55,7 +55,7 @@ def send_message_request(sock, request):
 
 def receive_error_code(sock):
     """Function in charge of receiving a byte representing the error code from the server"""
-    error_code = sock.recv(1).decode()
+    error_code = int.from_bytes(sock.recv(1), "big")
     return error_code
 
 
