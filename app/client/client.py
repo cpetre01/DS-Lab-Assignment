@@ -2,28 +2,18 @@ import argparse
 import socket
 import threading
 from threading import Thread
-from enum import Enum
 from src import netUtil, util
-global t
 
 
 class Client:
-    # ******************** TYPES *********************
-    # *
-    # * @brief Return codes for the protocol methods
-    class RC(Enum):
-        OK = 0
-        ERROR = 1
-        USER_ERROR = 2
-        OTHER_ERROR = 3
-
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
     # username of currently connected user
-    CURRENT_USER = None
+    _connected_user = None
     # event used to shut down the receiving thread when disconnect service is called
-    dcn_event = threading.Event()
+    _dcn_event = threading.Event()
+    _receiving_thread = None
 
     # ******************** METHODS *******************
     # *
@@ -37,8 +27,8 @@ class Client:
         # first, we create the request
         request = util.Request()
         # fill up the request
-        request.header._op_code = util.REGISTER
-        request.header._username = str(user)
+        request.header.op_code = util.REGISTER
+        request.header.username = str(user)
         # now, we connect to the socket
         sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
         if sock:
@@ -46,15 +36,15 @@ class Client:
             netUtil.send_header(sock, request)
             # receive server reply (error code)
             reply = util.Reply()
-            reply.server_error_code = netUtil.receive_error_code(sock)
+            reply.server_error_code = netUtil.receive_server_error_code(sock)
             # close the socket
             sock.close()
             # print the corresponding error message
-            if reply.server_error_code == Client.RC.OK.value:
+            if reply.server_error_code == util.EC.SUCCESS.value:
                 print("REGISTER OK")
-            elif reply.server_error_code == Client.RC.ERROR.value:
+            elif reply.server_error_code == util.EC.REGISTER_USR_ALREADY_REG.value:
                 print("USERNAME IN USE")
-            elif reply.server_error_code == Client.RC.USER_ERROR.value:
+            elif reply.server_error_code == util.EC.REGISTER_ANY.value:
                 print("REGISTRATION FAIL")
 
     # *
@@ -77,15 +67,19 @@ class Client:
             netUtil.send_header(sock, request)
             # receive server reply (error code)
             reply = util.Reply()
-            reply.server_error_code = netUtil.receive_error_code(sock)
+            reply.server_error_code = netUtil.receive_server_error_code(sock)
             # close the socket
             sock.close()
             # print the corresponding error message
-            if reply.server_error_code == Client.RC.OK.value:
+            if reply.server_error_code == util.EC.SUCCESS.value:
+                # if there is a connected user, disconnect it (kill the receiving thread)
+                if Client._connected_user:
+                    Client._connected_user = None
+                    Client._dcn_event.set()
                 print("UNREGISTER OK")
-            elif reply.server_error_code == Client.RC.ERROR.value:
+            elif reply.server_error_code == util.EC.UNREGISTER_USR_NOT_EXISTS.value:
                 print("USER DOES NOT EXIST")
-            elif reply.server_error_code == Client.RC.USER_ERROR.value:
+            elif reply.server_error_code == util.EC.UNREGISTER_ANY.value:
                 print("UNREGISTER FAIL")
 
     # *
@@ -96,7 +90,6 @@ class Client:
     # * @return ERROR if another error occurred
     @staticmethod
     def connect(user):
-        global t
         # first, we create the request
         request = util.Request()
         # now, create a socket and bind to port 0
@@ -107,7 +100,7 @@ class Client:
         # fill up the request
         request.header._op_code = util.CONNECT
         request.header._username = str(user)
-        request.item.listening_port = str(port)
+        request.item._listening_port = str(port)
         # now, we connect to the socket
         sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
         if sock:
@@ -115,22 +108,22 @@ class Client:
             netUtil.send_connection_request(sock, request)
             # receive server reply (error code)
             reply = util.Reply()
-            reply.server_error_code = netUtil.receive_error_code(sock)
+            reply.server_error_code = netUtil.receive_server_error_code(sock)
             # close the socket
             sock.close()
             # print the corresponding error message
-            if reply.server_error_code == Client.RC.OK.value:
+            if reply.server_error_code == util.EC.SUCCESS.value:
                 print("CONNECT OK")
                 # if the connection was performed successfully, update the current user and listen
-                Client.CURRENT_USER = str(user)
-                t = Thread(target=netUtil.listen_and_accept, args=(listen_sock, Client.dcn_event))
-                t.daemon = True
-                t.start()
-            elif reply.server_error_code == Client.RC.USER_ERROR.value:
-                print("USER ALREADY CONNECTED")
-            elif reply.server_error_code == Client.RC.ERROR.value:
+                Client._connected_user = str(user)
+                Client._receiving_thread = Thread(target=netUtil.listen_and_accept,
+                                                  args=(listen_sock, Client._dcn_event), daemon=True)
+                Client._receiving_thread.start()
+            elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
                 print("CONNECT FAIL, USER DOES NOT EXIST")
-            elif reply.server_error_code == Client.RC.OTHER_ERROR.value:
+            elif reply.server_error_code == util.EC.CONNECT_USR_ALREADY_CN.value:
+                print("USER ALREADY CONNECTED")
+            elif reply.server_error_code == util.EC.CONNECT_ANY.value:
                 print("CONNECT FAIL")
 
     # *
@@ -141,7 +134,6 @@ class Client:
     # * @return ERROR if another error occurred
     @staticmethod
     def disconnect(user):
-        global t
         # first, we create the request
         request = util.Request()
         # fill up the request
@@ -154,20 +146,19 @@ class Client:
             netUtil.send_header(sock, request)
             # receive server reply (error code)
             reply = util.Reply()
-            reply.server_error_code = netUtil.receive_error_code(sock)
+            reply.server_error_code = netUtil.receive_server_error_code(sock)
             # close the socket
             sock.close()
             # print the corresponding error message
-            if reply.server_error_code == Client.RC.OK.value:
-                Client.CURRENT_USER = None
-                Client.dcn_event.set()
-                # t.join()
+            if reply.server_error_code == util.EC.SUCCESS.value:
+                Client._connected_user = None
+                Client._dcn_event.set()
                 print("DISCONNECT OK")
-            elif reply.server_error_code == Client.RC.ERROR.value:
-                print("DISCONNECT FAIL: USER DOES NOT EXIST")
-            elif reply.server_error_code == Client.RC.USER_ERROR.value:
-                print("DISCONNECT FAIL: USER NOT CONNECTED")
-            elif reply.server_error_code == Client.RC.OTHER_ERROR.value:
+            elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_EXISTS.value:
+                print("DISCONNECT FAIL / USER DOES NOT EXIST")
+            elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_CN.value:
+                print("DISCONNECT FAIL / USER NOT CONNECTED")
+            elif reply.server_error_code == util.EC.DISCONNECT_ANY.value:
                 print("DISCONNECT FAIL")
 
     # *
@@ -183,12 +174,12 @@ class Client:
         # first, we create the request
         request = util.Request()
         # fill up the request
-        request.header._op_code = util.SEND
-        request.header._username = Client.CURRENT_USER
-        request.item._recipient_username = str(recipient)
+        request.header.op_code = util.SEND
+        request.header.username = Client._connected_user
+        request.item.recipient_username = str(recipient)
         if len(message) > 255:
             print("ERROR, MESSAGE TOO LONG")
-        request.item._message = str(message)
+        request.item.message = str(message)
         # now, we connect to the socket
         sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
         if sock:
@@ -196,18 +187,18 @@ class Client:
             netUtil.send_message_request(sock, request)
             # receive server reply (error code)
             reply = util.Reply()
-            reply.server_error_code = netUtil.receive_error_code(sock)
+            reply.server_error_code = netUtil.receive_server_error_code(sock)
             # close the socket
             sock.close()
             # print the corresponding error message
-            if reply.server_error_code == Client.RC.OK.value:
+            if reply.server_error_code == util.EC.SUCCESS.value:
                 # in case of success, return the corresponding message id
-                message_id = netUtil.receive_server_response(sock)
+                message_id = netUtil.receive_string(sock)
                 print(f"SEND OK - MESSAGE {message_id}")
-            elif reply.server_error_code == Client.RC.ERROR.value:
-                print("SEND FAIL, USER DOES NOT EXIST")
-            elif reply.server_error_code == Client.RC.USER_ERROR.value:
-                print("SEND FAIL, USER NOT CONNECTED")
+            elif reply.server_error_code == util.EC.SEND_USR_NOT_EXISTS.value:
+                print("SEND FAIL / USER DOES NOT EXIST")
+            elif reply.server_error_code == util.EC.SEND_ANY.value:
+                print("SEND FAIL")
 
     @staticmethod
     def shell():
@@ -234,7 +225,10 @@ class Client:
 
                     elif line[0] == "CONNECT":
                         if len(line) == 2:
-                            Client.connect(line[1])
+                            if Client._connected_user and line[1] != Client._connected_user:
+                                print(f"Please disconnect '{Client._connected_user}' user first")
+                            else:
+                                Client.connect(line[1])
                         else:
                             print("Syntax error. Usage: CONNECT <userName>")
 
@@ -254,8 +248,8 @@ class Client:
 
                     elif line[0] == "QUIT":
                         if len(line) == 1:
-                            if Client.CURRENT_USER:
-                                Client.disconnect(Client.CURRENT_USER)
+                            if Client._connected_user:
+                                Client.disconnect(Client._connected_user)
                             break
                         else:
                             print("Syntax error. Use: QUIT")
