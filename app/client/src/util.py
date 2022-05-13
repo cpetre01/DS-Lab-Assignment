@@ -10,7 +10,7 @@ CONNECT = 'CONNECT'
 DISCONNECT = 'DISCONNECT'
 SEND = 'SEND'
 QUIT = 'QUIT'
-
+TEST = "TEST"
 
 # services called by server, served by client
 SEND_MESSAGE = 'SEND_MESSAGE'

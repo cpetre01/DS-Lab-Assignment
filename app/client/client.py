@@ -1,4 +1,5 @@
 import argparse
+import zeep
 import socket
 from threading import Thread
 from src import netUtil, util
@@ -16,7 +17,7 @@ class Client:
     # ******************** METHODS *******************
     # *
     # * @param user - User name to register in the system
-    # * 
+    # *
     # * @return OK if successful
     # * @return USER_ERROR if the user is already registered
     # * @return ERROR if another error occurred
@@ -91,6 +92,7 @@ class Client:
         request = util.Request()
         # now, create a socket and bind to port 0
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listen_sock.bind((socket.gethostname(), 0))
         # we get the port using getsockname
         Client._listening_port = listen_sock.getsockname()[1]
@@ -157,15 +159,10 @@ class Client:
             request_end_thread = util.Request()
             request_end_thread.header.op_code = util.END_LISTEN_THREAD
             # connect to listening thread
-            print("before connect listen thread")
             with netUtil.connect_socket((socket.gethostname(), Client._listening_port)) as sock_listen_thread:
-                print("after connect listen thread")
                 if sock_listen_thread:
-                    print(f"{sock_listen_thread.getpeername()=}")
                     # send END_LISTEN_THREAD to receiving thread
                     netUtil.send_header(sock_listen_thread, request)
-                    print("after send to listen thread")
-
             print("DISCONNECT OK")
         elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_EXISTS.value:
             print("DISCONNECT FAIL / USER DOES NOT EXIST")
@@ -212,6 +209,15 @@ class Client:
                 print("SEND FAIL / USER DOES NOT EXIST")
             elif reply.server_error_code == util.EC.SEND_ANY.value:
                 print("SEND FAIL")
+
+
+    @staticmethod
+    def testWebServices(message):
+        wsdl = 'http://localhost:8000/?wsdl'
+        client = zeep.Client(wsdl=wsdl)
+        print(client.service.remove(message))
+
+
 
     @staticmethod
     def shell():
@@ -266,6 +272,13 @@ class Client:
                             break
                         else:
                             print("Syntax error. Use: QUIT")
+
+                    elif line[0] == "TEST":
+                        if len(line) == 2:
+                            Client.testWebServices(line[1])
+                        else:
+                            print("Syntax error. Use: TEST")
+
                     else:
                         print(f"Error: command {line[0]} not valid.")
             except Exception as ex:

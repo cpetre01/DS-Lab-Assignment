@@ -3,7 +3,6 @@ to server socket, as well as connecting to the socket"""
 
 # ******************** IMPORTS ***********************
 import socket
-import threading
 from src import util
 
 # ******************** FUNCTIONS *********************
@@ -18,17 +17,20 @@ def connect_socket(server_address: tuple):
         return sock
     except Exception as ex:
         print(f"Cannot connect to server. Exception: {ex}")
-    
+
 
 def send_header(sock, request):
     """Function in charge of sending the header to the server socket"""
     # send the op_code
-    sock.sendall(request.header.op_code.encode('ascii'))
-    sock.sendall(b'\0')
+    try:
+        sock.sendall(request.header.op_code.encode('ascii'))
+        sock.sendall(b'\0')
 
-    # send the username
-    sock.sendall(request.header.username.encode('ascii'))
-    sock.sendall(b'\0')
+        # send the username
+        sock.sendall(request.header.username.encode('ascii'))
+        sock.sendall(b'\0')
+    except Exception:
+        print("send_header fail")
 
 
 def send_connection_request(sock, request):
@@ -78,31 +80,31 @@ def listen_and_accept(sock):
     sock.listen(1)
     # first, create the reply
     reply = util.Reply()
-    while True:
+    connected = True
+    while connected:
         # then, accept the connection
         connection, client_address = sock.accept()
-        print(f"{sock.getsockname()=}")
         try:
             # receive the operation code of the server response
-            reply.header.op_code = receive_string(sock)
+            reply.header.op_code = receive_string(connection)
             # in the case of a message:
             if reply.header.op_code == util.SEND_MESSAGE:
-                reply.header.username = receive_string(sock)
-                reply.item.message_id = receive_string(sock)
-                reply.item.message = receive_string(sock)
+                reply.header.username = receive_string(connection)
+                reply.item.message_id = receive_string(connection)
+                reply.item.message = receive_string(connection)
                 print(f"c> MESSAGE {reply.item.message_id} FROM {reply.header.username}:\n {reply.item.message}\nEND")
             # in case of a message acknowledgement:
             elif reply.header.op_code == util.SEND_MESS_ACK:
-                reply.item.message_id = receive_string(sock)
+                reply.item.message_id = receive_string(connection)
                 print(f"c> SEND MESSAGE {reply.item.message_id} OK")
             elif reply.header.op_code == util.END_LISTEN_THREAD:
                 # end thread
-                connection.close()
-                sock.close()
-                return None
+                connected = False
             else:
                 print("ERROR, INVALID OPERATION")
                 break
-        finally:
+        except socket.error:
             connection.close()
-            sock.close()
+        finally:
+            if not connected:
+                sock.close()
