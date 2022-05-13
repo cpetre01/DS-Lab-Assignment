@@ -73,7 +73,7 @@ def receive_string(sock):
     return string
 
 
-def listen_and_accept(sock, event):
+def listen_and_accept(sock):
     """Function in charge of listening at a free port and accepting the connection, receiving server replies"""
     sock.listen(1)
     # first, create the reply
@@ -81,13 +81,7 @@ def listen_and_accept(sock, event):
     while True:
         # then, accept the connection
         connection, client_address = sock.accept()
-
-        # shut down thread if event is set
-        if event.isSet():
-            connection.close()
-            sock.close()
-            return # maybe we should put it to sleep instead
-
+        print(f"{sock.getsockname()=}")
         try:
             # receive the operation code of the server response
             reply.header.op_code = receive_string(sock)
@@ -101,6 +95,11 @@ def listen_and_accept(sock, event):
             elif reply.header.op_code == util.SEND_MESS_ACK:
                 reply.item.message_id = receive_string(sock)
                 print(f"c> SEND MESSAGE {reply.item.message_id} OK")
+            elif reply.header.op_code == util.END_LISTEN_THREAD:
+                # end thread
+                connection.close()
+                sock.close()
+                return None
             else:
                 print("ERROR, INVALID OPERATION")
                 break

@@ -1,6 +1,5 @@
 import argparse
 import socket
-import threading
 from threading import Thread
 from src import netUtil, util
 
@@ -11,9 +10,8 @@ class Client:
     _port = -1
     # username of currently connected user
     _connected_user = None
-    # event used to shut down the receiving thread when disconnect service is called
-    _dcn_event = threading.Event()
     _receiving_thread = None
+    _listening_port = None
 
     # ******************** METHODS *******************
     # *
@@ -30,7 +28,7 @@ class Client:
         request.header.op_code = util.REGISTER
         request.header.username = str(user)
         # now, we connect to the socket
-        sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
+        sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
             # and send te registration request
             netUtil.send_header(sock, request)
@@ -61,7 +59,7 @@ class Client:
         request.header._op_code = util.UNREGISTER
         request.header._username = str(user)
         # now, we connect to the socket
-        sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
+        sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
             # and send te registration request
             netUtil.send_header(sock, request)
@@ -75,7 +73,6 @@ class Client:
                 # if there is a connected user, disconnect it (kill the receiving thread)
                 if Client._connected_user:
                     Client._connected_user = None
-                    Client._dcn_event.set()
                 print("UNREGISTER OK")
             elif reply.server_error_code == util.EC.UNREGISTER_USR_NOT_EXISTS.value:
                 print("USER DOES NOT EXIST")
@@ -94,15 +91,17 @@ class Client:
         request = util.Request()
         # now, create a socket and bind to port 0
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        listen_sock.bind((Client._server, 0))
+        listen_sock.bind((socket.gethostname(), 0))
         # we get the port using getsockname
-        port = listen_sock.getsockname()[1]
+        Client._listening_port = listen_sock.getsockname()[1]
+        print(f"{Client._listening_port=}")
+        print(f"{listen_sock.getsockname()=}")
         # fill up the request
-        request.header._op_code = util.CONNECT
-        request.header._username = str(user)
-        request.item._listening_port = str(port)
+        request.header.op_code = util.CONNECT
+        request.header.username = str(user)
+        request.item.listening_port = str(Client._listening_port)
         # now, we connect to the socket
-        sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
+        sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
             # and send the connection request
             netUtil.send_connection_request(sock, request)
@@ -116,8 +115,7 @@ class Client:
                 print("CONNECT OK")
                 # if the connection was performed successfully, update the current user and listen
                 Client._connected_user = str(user)
-                Client._receiving_thread = Thread(target=netUtil.listen_and_accept,
-                                                  args=(listen_sock, Client._dcn_event), daemon=True)
+                Client._receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
                 Client._receiving_thread.start()
             elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
                 print("CONNECT FAIL, USER DOES NOT EXIST")
@@ -134,32 +132,47 @@ class Client:
     # * @return ERROR if another error occurred
     @staticmethod
     def disconnect(user):
-        # first, we create the request
+        # first, we create the request and reply
         request = util.Request()
+        reply = util.Reply()
         # fill up the request
-        request.header._op_code = util.DISCONNECT
-        request.header._username = str(user)
+        request.header.op_code = util.DISCONNECT
+        request.header.username = str(user)
         # now, we connect to the socket
-        sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
-        if sock:
-            # and send te registration request
-            netUtil.send_header(sock, request)
-            # receive server reply (error code)
-            reply = util.Reply()
-            reply.server_error_code = netUtil.receive_server_error_code(sock)
-            # close the socket
-            sock.close()
-            # print the corresponding error message
-            if reply.server_error_code == util.EC.SUCCESS.value:
-                Client._connected_user = None
-                Client._dcn_event.set()
-                print("DISCONNECT OK")
-            elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_EXISTS.value:
-                print("DISCONNECT FAIL / USER DOES NOT EXIST")
-            elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_CN.value:
-                print("DISCONNECT FAIL / USER NOT CONNECTED")
-            elif reply.server_error_code == util.EC.DISCONNECT_ANY.value:
-                print("DISCONNECT FAIL")
+        with netUtil.connect_socket((Client._server, Client._port)) as sock:
+            if sock:
+                # and send the registration request
+                netUtil.send_header(sock, request)
+                # receive server reply (error code)
+                reply.server_error_code = netUtil.receive_server_error_code(sock)
+            else:
+                # socket error
+                reply.server_error_code = util.EC.DISCONNECT_ANY.value
+        # print the corresponding error message
+        if reply.server_error_code == util.EC.SUCCESS.value:
+            Client._connected_user = None
+
+            # end listening thread
+            # prepare request
+            request_end_thread = util.Request()
+            request_end_thread.header.op_code = util.END_LISTEN_THREAD
+            # connect to listening thread
+            print("before connect listen thread")
+            with netUtil.connect_socket((socket.gethostname(), Client._listening_port)) as sock_listen_thread:
+                print("after connect listen thread")
+                if sock_listen_thread:
+                    print(f"{sock_listen_thread.getpeername()=}")
+                    # send END_LISTEN_THREAD to receiving thread
+                    netUtil.send_header(sock_listen_thread, request)
+                    print("after send to listen thread")
+
+            print("DISCONNECT OK")
+        elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_EXISTS.value:
+            print("DISCONNECT FAIL / USER DOES NOT EXIST")
+        elif reply.server_error_code == util.EC.DISCONNECT_USR_NOT_CN.value:
+            print("DISCONNECT FAIL / USER NOT CONNECTED")
+        elif reply.server_error_code == util.EC.DISCONNECT_ANY.value:
+            print("DISCONNECT FAIL")
 
     # *
     # * @param user    - Receiver user name
@@ -181,7 +194,7 @@ class Client:
             print("ERROR, MESSAGE TOO LONG")
         request.item.message = str(message)
         # now, we connect to the socket
-        sock = netUtil.connect_socket(server_address=(Client._server, Client._port))
+        sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
             # and send te message request
             netUtil.send_message_request(sock, request)

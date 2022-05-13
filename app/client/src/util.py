@@ -16,6 +16,9 @@ QUIT = 'QUIT'
 SEND_MESSAGE = 'SEND_MESSAGE'
 SEND_MESS_ACK = 'SEND_MESS_ACK'
 
+# op code used to end the client receiving thread
+END_LISTEN_THREAD = "END_LISTEN_THREAD"
+
 
 # ******************** TYPES *********************
 class EC(Enum):
