@@ -95,13 +95,11 @@ class Client:
         listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listen_sock.bind((socket.gethostname(), 0))
         # we get the port using getsockname
-        Client._listening_port = listen_sock.getsockname()[1]
-        print(f"{Client._listening_port=}")
-        print(f"{listen_sock.getsockname()=}")
+        listening_port = listen_sock.getsockname()[1]
         # fill up the request
         request.header.op_code = util.CONNECT
         request.header.username = str(user)
-        request.item.listening_port = str(Client._listening_port)
+        request.item.listening_port = str(listening_port)
         # now, we connect to the socket
         sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
@@ -117,14 +115,19 @@ class Client:
                 print("CONNECT OK")
                 # if the connection was performed successfully, update the current user and listen
                 Client._connected_user = str(user)
+                Client._listening_port = listening_port
                 Client._receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
                 Client._receiving_thread.start()
+                return None
             elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
                 print("CONNECT FAIL, USER DOES NOT EXIST")
             elif reply.server_error_code == util.EC.CONNECT_USR_ALREADY_CN.value:
                 print("USER ALREADY CONNECTED")
             elif reply.server_error_code == util.EC.CONNECT_ANY.value:
                 print("CONNECT FAIL")
+
+            # if CONNECT operation has failed, close the created socket
+            listen_sock.close()
 
     # *
     # * @param user - User name to disconnect from the system
@@ -172,7 +175,7 @@ class Client:
             print("DISCONNECT FAIL")
 
     # *
-    # * @param user    - Receiver user name
+    # * @param user    - Recipient user name
     # * @param message - Message to be sent
     # *
     # * @return OK if the server had successfully delivered the message
