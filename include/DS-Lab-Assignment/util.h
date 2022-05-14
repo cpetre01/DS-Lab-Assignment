@@ -17,10 +17,8 @@
 #define CONNECT "CONNECT"
 #define DISCONNECT "DISCONNECT"
 #define SEND "SEND"
-#define SENDATTACH "SENDATTACH"
-#define TEST "TEST"
 
-/***** Services Called By Server, Served By Client Listening Thread */
+/***** Services Called By Server, Served By Client Listening Thread *****/
 #define SEND_MESSAGE "SEND_MESSAGE"
 #define SEND_MESS_ACK "SEND_MESS_ACK"
 
@@ -149,13 +147,13 @@ int read_line(int d, char *buffer, int buf_space);
     }
 
 /***** Socket Function Error Checking With perror() Call To Print errno Message *****/
-#define CHECK_SOCK_ERROR(FUNCTION_CALL, RETURN_ERROR, SOCKET) \
+#define CHECK_SOCK_ERROR(FUNCTION_CALL, SOCKET) \
     ret_val = (FUNCTION_CALL); \
     if (ret_val < 0) { \
         fprintf(stderr, "Runtime Error: %s\n returned %d\n at %s:%d\n", #FUNCTION_CALL, ret_val, __FILE__, __LINE__); \
         perror(#FUNCTION_CALL); \
         close(SOCKET); \
-        return (RETURN_ERROR); \
+        return GEN_ERR_ANY; \
     }
 
 /***** Argument Checking *****/
@@ -183,7 +181,7 @@ typedef struct {
         };
         struct {    /* members used for SEND, SEND_MESSAGE & SEND_MESS_ACK services */
             char sender[MAX_STR_SIZE];      /* username of sender client */
-            char receiver[MAX_STR_SIZE];    /* username of receiver client */
+            char recipient[MAX_STR_SIZE];    /* username of recipient client */
             message_t message;
         };
     };
@@ -231,14 +229,14 @@ typedef struct {
 /*send*/
 //receive op_code
 //receive sender username
-//receive receiver username
+//receive recipient username
 //receive message content
 //set message ID
 //send message ID to sender client (first ACK: server got the message)
 
 /*content passing from server to client*/
 
-/*send content to receiver*/
+/*send content to recipient*/
 //send op_code
 //send sender username
 //send message ID

@@ -75,30 +75,16 @@ void *service_thread(void *args) {
         /* receive op_code */
         if (recv_string(client_socket, request.op_code) == -1) continue;
 
-        //test operation, to test client
-        if (!strcmp(request.op_code, TEST)) {
-            fprintf(stderr, "test op\n");
-            reply.server_error_code = TEST_ERR_CODE;
-
-            /* send server reply */
-            send_server_reply(client_socket, &reply);
-            continue;
-        } else if (!strcmp(request.op_code, REGISTER)) {
+        if (!strcmp(request.op_code, REGISTER))
             srv_register(client_socket, &request, &reply, &entry);
-            continue;
-        } else if (!strcmp(request.op_code, UNREGISTER)) {
+        else if (!strcmp(request.op_code, UNREGISTER))
             srv_unregister(client_socket, &request, &reply);
-            continue;
-        } else if (!strcmp(request.op_code, CONNECT)) {
+        else if (!strcmp(request.op_code, CONNECT))
             srv_connect(client_socket, &request, &reply, &entry);
-            continue;
-        } else if (!strcmp(request.op_code, DISCONNECT)) {
+        else if (!strcmp(request.op_code, DISCONNECT))
             srv_disconnect(client_socket, &request, &reply, &entry);
-            continue;
-        } else if (!strcmp(request.op_code, SEND)) {
+        else if (!strcmp(request.op_code, SEND))
             srv_send(client_socket, &request, &reply, &entry);
-            continue;
-        }
     } // end outer while
 }
 
@@ -156,15 +142,15 @@ int main(int argc, char **argv) {
     /* get server up & running */
     CHECK_FUNC_ERROR_WITH_ERRNO(server_sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP), GEN_ERR_ANY)
     CHECK_SOCK_ERROR(setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR,
-                                (char *) &val,sizeof(int)), GEN_ERR_ANY, server_sd)
+                                (char *) &val,sizeof(int)), server_sd)
 
     bzero((char *) &server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(server_port);
 
-    CHECK_SOCK_ERROR(bind(server_sd, (struct sockaddr *) &server_addr, sizeof server_addr), GEN_ERR_ANY, server_sd)
-    CHECK_SOCK_ERROR(listen(server_sd, LISTEN_BACKLOG), GEN_ERR_ANY, server_sd)
+    CHECK_SOCK_ERROR(bind(server_sd, (struct sockaddr *) &server_addr, sizeof server_addr), server_sd)
+    CHECK_SOCK_ERROR(listen(server_sd, LISTEN_BACKLOG), server_sd)
 
     /* now create thread pool */
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {

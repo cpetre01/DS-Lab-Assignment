@@ -93,7 +93,7 @@ class Client:
         # now, create a socket and bind to port 0
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        listen_sock.bind((socket.gethostname(), 0))
+        listen_sock.bind(("", 0))
         # we get the port using getsockname
         listening_port = listen_sock.getsockname()[1]
         # fill up the request
@@ -194,24 +194,22 @@ class Client:
             print("ERROR, MESSAGE TOO LONG")
         request.item.message = str(message)
         # now, we connect to the socket
-        sock = netUtil.connect_socket((Client._server, Client._port))
-        if sock:
-            # and send te message request
-            netUtil.send_message_request(sock, request)
-            # receive server reply (error code)
-            reply = util.Reply()
-            reply.server_error_code = netUtil.receive_server_error_code(sock)
-            # close the socket
-            sock.close()
-            # print the corresponding error message
-            if reply.server_error_code == util.EC.SUCCESS.value:
-                # in case of success, return the corresponding message id
-                message_id = netUtil.receive_string(sock)
-                print(f"SEND OK - MESSAGE {message_id}")
-            elif reply.server_error_code == util.EC.SEND_USR_NOT_EXISTS.value:
-                print("SEND FAIL / USER DOES NOT EXIST")
-            elif reply.server_error_code == util.EC.SEND_ANY.value:
-                print("SEND FAIL")
+        with netUtil.connect_socket((Client._server, Client._port)) as sock:
+            if sock:
+                # and send te message request
+                netUtil.send_message_request(sock, request)
+                # receive server reply (error code)
+                reply = util.Reply()
+                reply.server_error_code = netUtil.receive_server_error_code(sock)
+                # print the corresponding error message
+                if reply.server_error_code == util.EC.SUCCESS.value:
+                    # in case of success, return the corresponding message id
+                    message_id = netUtil.receive_string(sock)
+                    print(f"SEND OK - MESSAGE {message_id}")
+                elif reply.server_error_code == util.EC.SEND_USR_NOT_EXISTS.value:
+                    print("SEND FAIL / USER DOES NOT EXIST")
+                elif reply.server_error_code == util.EC.SEND_ANY.value:
+                    print("SEND FAIL")
 
 
     @staticmethod

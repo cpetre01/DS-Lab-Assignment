@@ -15,44 +15,50 @@ def connect_socket(server_address: tuple):
         # print(f"connecting to {server_address[0]} port {server_address[1]}")
         sock.connect(server_address)
         return sock
-    except Exception as ex:
-        print(f"Cannot connect to server. Exception: {ex}")
+    except socket.error as ex:
+        print(f"connect_socket fail: {ex}")
 
 
 def send_header(sock, request):
     """Function in charge of sending the header to the server socket"""
-    # send the op_code
     try:
+        # send the op_code
         sock.sendall(request.header.op_code.encode('ascii'))
         sock.sendall(b'\0')
 
         # send the username
         sock.sendall(request.header.username.encode('ascii'))
         sock.sendall(b'\0')
-    except Exception:
-        print("send_header fail")
+    except socket.error as ex:
+        print(f"send_header fail: {ex}")
 
 
 def send_connection_request(sock, request):
     """Function in charge of sending the header and the destination port to the server socket, so that the connection
     can be performed """
-    # first, send the header
-    send_header(sock, request)
-    # now, send also the port
-    sock.sendall(request.item.listening_port.encode('ascii'))
-    sock.sendall(b'\0')
+    try:
+        # first, send the header
+        send_header(sock, request)
+        # now, send also the port
+        sock.sendall(request.item.listening_port.encode('ascii'))
+        sock.sendall(b'\0')
+    except socket.error as ex:
+        print(f"send_connection_request fail: {ex}")
 
 
 def send_message_request(sock, request):
     """Function in charge of sending the header, the recipient user and the message to the server socket"""
-    # first, send the header
-    send_header(sock, request)
-    # we send the recipient user
-    sock.sendall(request.item.recipient_username.encode('ascii'))
-    sock.sendall(b'\0')
-    # and also the message
-    sock.sendall(request.item.message.encode('ascii'))
-    sock.sendall(b'\0')
+    try:
+        # first, send the header
+        send_header(sock, request)
+        # we send the recipient user
+        sock.sendall(request.item.recipient_username.encode('ascii'))
+        sock.sendall(b'\0')
+        # and also the message
+        sock.sendall(request.item.message.encode('ascii'))
+        sock.sendall(b'\0')
+    except socket.error as ex:
+        print(f"send_message_request fail: {ex}")
 
 
 def receive_server_error_code(sock):
@@ -83,7 +89,9 @@ def listen_and_accept(sock):
     connected = True
     while connected:
         # then, accept the connection
+        # print(f"{sock.getsockname()=}")
         connection, client_address = sock.accept()
+        print("accepted connection")
         try:
             # receive the operation code of the server response
             reply.header.op_code = receive_string(connection)
@@ -99,12 +107,17 @@ def listen_and_accept(sock):
                 print(f"c> SEND MESSAGE {reply.item.message_id} OK")
             elif reply.header.op_code == util.END_LISTEN_THREAD:
                 # end thread
+                print("end thread")
                 connected = False
             else:
                 print("ERROR, INVALID OPERATION")
                 break
-        except socket.error:
+        except socket.error as ex:
+            print(f"listen_and_accept fail: {ex}")
             connection.close()
+            sock.close()
+            return None
         finally:
+            print("finally")
             if not connected:
                 sock.close()
