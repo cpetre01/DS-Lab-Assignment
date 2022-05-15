@@ -18,26 +18,35 @@ int db_init_db(void) {
 }
 
 
-int db_get_num_pend_msgs(const char *username) {
-    /*** Returns the number of messages pending to be sent to a given username ***/
+int db_get_pend_msg(entry_t *entry) {
+    /*** Reads a pending message of a given username entry ***/
     int ret_val;    /* needed for error-checking macros */
-    struct dirent *entry;
-    int num_pend_msgs = 0;
+    struct dirent *pend_msgs_entry;
+    int pend_msgs_table_is_empty = TRUE;    /* assume that there are no pending messages */
+
+    CHECK_ARGS(entry->type != ENT_TYPE_P_MSG, "Invalid Entry Type")
 
     /* set up the path to open pending messages table directory for given username */
-    char table_path[strlen(DB_DIR) + strlen(username) + strlen(PEND_MSGS_TABLE) + 9];
-    sprintf(table_path, "%s/%s-table/%s", DB_DIR, username, PEND_MSGS_TABLE);
+    char table_path[strlen(DB_DIR) + strlen(entry->username) + strlen(PEND_MSGS_TABLE) + 9];
+    sprintf(table_path, "%s/%s-table/%s", DB_DIR, entry->username, PEND_MSGS_TABLE);
 
     DIR *pend_msg_table;
     CHECK_FUNC_ERROR(open_directory(table_path, READ, &pend_msg_table), DBMS_ERR_ANY)
 
-    while ((entry = readdir(pend_msg_table)) != NULL) {
-        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
-        num_pend_msgs++;
+    /* read directory entries */
+    while ((pend_msgs_entry = readdir(pend_msg_table)) != NULL && pend_msgs_table_is_empty) {
+        if (!strcmp(pend_msgs_entry->d_name, ".") || !strcmp(pend_msgs_entry->d_name, "..")) continue;
+
+        /* found a pending message: read it and break out of the loop */
+        CHECK_FUNC_ERROR(str_to_num(pend_msgs_entry->d_name, (void *) &entry->msg.id, UINT),
+                         DBMS_ERR_ANY)
+        db_io_op_usr_ent(entry, READ);
+        pend_msgs_table_is_empty = FALSE;
     }
 
     closedir(pend_msg_table);
-    return num_pend_msgs;
+    /* if no pending messages were found, return an error */
+    return (!pend_msgs_table_is_empty) ? DBMS_SUCCESS : DBMS_ERR_NOT_EXISTS;
 }
 
 

@@ -93,8 +93,9 @@
 
 /**** Number Casting Stuff ****/
 #define INT 'i'
+#define UINT 'u'
 #define FLOAT 'f'
-int str_to_num(const char *value_str, void *value, char type);
+int str_to_num(const char *string, void *number, char type);
 
 /**** File/Socket Descriptor I/O Functions ****/
 int write_bytes(int d, const char *buffer, int len);
@@ -167,6 +168,7 @@ int read_line(int d, char *buffer, int buf_space);
 /***** Types Used For Process Communication *****/
 typedef struct {
     /*** Message Sent Between Server & Client, Both Ways ***/
+    char sender[MAX_STR_SIZE];      /* username of sender client */
     unsigned int id;            /* message ID */
     char content[MAX_MSG_SIZE]; /* message content */
 } message_t;
@@ -180,7 +182,6 @@ typedef struct {
             char client_port[MAX_STR_SIZE]; /* client listening thread port; member only used for CONNECT service */
         };
         struct {    /* members used for SEND, SEND_MESSAGE & SEND_MESS_ACK services */
-            char sender[MAX_STR_SIZE];      /* username of sender client */
             char recipient[MAX_STR_SIZE];    /* username of recipient client */
             message_t message;
         };

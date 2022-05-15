@@ -83,42 +83,40 @@ def receive_string(sock):
 
 def listen_and_accept(sock):
     """Function in charge of listening at a free port and accepting the connection, receiving server replies"""
-    sock.listen(5)
+    sock.listen(1)
     # first, create the reply
     reply = util.Reply()
     connected = True
     while connected:
         # then, accept the connection
-        # print(f"{sock.getsockname()=}")
         connection, client_address = sock.accept()
-        print("accepted connection")
-        # try:
-        # receive the operation code of the server response
-        reply.header.op_code = receive_string(connection)
-        # in the case of a message:
-        if reply.header.op_code == util.SEND_MESSAGE:
-            reply.header.username = receive_string(connection)
-            reply.item.message_id = receive_string(connection)
-            reply.item.message = receive_string(connection)
-            print(f"c> MESSAGE {reply.item.message_id} FROM {reply.header.username}:\n {reply.item.message}\nEND")
-    # in case of a message acknowledgement:
-        elif reply.header.op_code == util.SEND_MESS_ACK:
-            reply.item.message_id = receive_string(connection)
-            print(f"c> SEND MESSAGE {reply.item.message_id} OK")
-        elif reply.header.op_code == util.END_LISTEN_THREAD:
-            # end thread
-            print("end thread")
+        try:
+            # receive the operation code of the server response
+            reply.header.op_code = receive_string(connection)
+            # in the case of a message:
+            if reply.header.op_code == util.SEND_MESSAGE:
+                reply.header.username = receive_string(connection)
+                reply.item.message_id = receive_string(connection)
+                reply.item.message = receive_string(connection)
+                print(f"c> MESSAGE {reply.item.message_id} FROM {reply.header.username}:\n {reply.item.message}\nEND")
+            # in case of a message acknowledgement:
+            elif reply.header.op_code == util.SEND_MESS_ACK:
+                reply.item.message_id = receive_string(connection)
+                print(f"c> SEND MESSAGE {reply.item.message_id} OK")
+            elif reply.header.op_code == util.END_LISTEN_THREAD:
+                # end thread
+                connected = False
+            else:
+                print("ERROR, INVALID OPERATION")
+                break
+
+        except socket.error as ex:
+            print(f"listen_and_accept fail: {ex}")
+            connection.close()
             sock.close()
-            connected = False
-        else:
-            print("ERROR, INVALID OPERATION")
-            break
-        # except socket.error as ex:
-        #     print(f"listen_and_accept fail: {ex}")
-        #     connection.close()
-        #     sock.close()
-        #     return None
-        # finally:
-        #     print("finally")
-        #     if not connected:
-        #         sock.close()
+            return None
+
+        finally:
+            connection.close()
+            if not connected:
+                sock.close()

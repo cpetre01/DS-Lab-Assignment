@@ -67,24 +67,21 @@ void *service_thread(void *args) {
 
         pthread_mutex_unlock(&mutex_conn_q);
 
-        /* handle connection now */
+        /* handle connection now
+         * receive op_code */
         request_t request;
-        reply_t reply;
-        entry_t entry;
-
-        /* receive op_code */
         if (recv_string(client_socket, request.op_code) == -1) continue;
 
         if (!strcmp(request.op_code, REGISTER))
-            srv_register(client_socket, &request, &reply, &entry);
+            srv_register(client_socket, &request);
         else if (!strcmp(request.op_code, UNREGISTER))
-            srv_unregister(client_socket, &request, &reply);
+            srv_unregister(client_socket, &request);
         else if (!strcmp(request.op_code, CONNECT))
-            srv_connect(client_socket, &request, &reply, &entry);
+            srv_connect(client_socket, &request);
         else if (!strcmp(request.op_code, DISCONNECT))
-            srv_disconnect(client_socket, &request, &reply, &entry);
+            srv_disconnect(client_socket, &request);
         else if (!strcmp(request.op_code, SEND))
-            srv_send(client_socket, &request, &reply, &entry);
+            srv_send(client_socket, &request);
     } // end outer while
 }
 
@@ -169,8 +166,6 @@ int main(int argc, char **argv) {
     while (TRUE) {      /* main server loop: accept connections from clients and queue them */
         CHECK_FUNC_ERROR_WITH_ERRNO(client_sd = accept(server_sd, (struct sockaddr *) &client_addr,
                 &addr_size), -1)
-//        printf("Accepted connection IP: %s    Port: %d\n",
-//               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
         /* add connection to conn_q backlog */
         pthread_mutex_lock(&mutex_conn_q);

@@ -264,7 +264,10 @@ class Client:
 
                     elif line[0] == "DISCONNECT":
                         if len(line) == 2:
-                            Client.disconnect(line[1])
+                            if line[1] != Client._connected_user:
+                                print(f"Cannot disconnect '{line[1]}' user: it is not connected on this session")
+                            else:
+                                Client.disconnect(line[1])
                         else:
                             print("Syntax error. Usage: DISCONNECT <userName>")
 
