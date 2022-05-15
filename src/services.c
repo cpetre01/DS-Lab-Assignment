@@ -72,8 +72,6 @@ void clt_send_message(request_t *request, reply_t *reply, entry_t *entry) {
     /* set up message ID */
     char msg_id_str[16]; sprintf(msg_id_str, "%u", request->message.id);
 
-//    printf("send_message op_code: %s\n", request->op_code);
-    fflush(stdout);
     /* send stuff */
     if (send_string(clt_listen_socket, request->op_code) < 0 ||
     send_string(clt_listen_socket, request->sender) < 0 ||
@@ -90,13 +88,11 @@ void clt_send_message(request_t *request, reply_t *reply, entry_t *entry) {
 void clt_send_mess_ack(request_t *request, entry_t *entry) {
     /* send this to client listening thread */
     int clt_listen_socket = aux_connect_clt_listen_thread(entry);
-    if (aux_connect_clt_listen_thread(entry) < 0) return;
+    if (clt_listen_socket < 0) return;
 
     /* set up message ID */
     char msg_id_str[16]; sprintf(msg_id_str, "%u", request->message.id);
 
-//    printf("send_message op_code: %s\n", request->op_code);
-    fflush(stdout);
     /* send stuff */
     send_string(clt_listen_socket, request->op_code);
     send_string(clt_listen_socket, msg_id_str);
@@ -193,7 +189,6 @@ void srv_connect(const int socket, request_t *request, reply_t *reply, entry_t *
                 entry->user.status = STATUS_CN;
                 entry->user.port = (uint16_t) tmp_port;
                 entry->user.ip = client_addr.sin_addr;
-//                printf("Client IP: %s\n", inet_ntoa(client_addr.sin_addr));
 
                 /* update user entry in DB */
                 io_result = db_io_op_usr_ent(entry, MODIFY);
@@ -215,6 +210,8 @@ void srv_connect(const int socket, request_t *request, reply_t *reply, entry_t *
 
     /* send reply to client */
     send_server_reply(socket, reply);
+
+    /* send pending messages */
 
 }
 
@@ -367,7 +364,6 @@ void srv_send(const int socket, request_t *request, reply_t *reply, entry_t *msg
         strcpy(sender_entry.username, request->sender);
 
         /* send second ACK to sender listening thread */
-        sleep(1);
         printf("send second ACK\n"); fflush(stdout);
         clt_send_mess_ack(&send_msg_ack_request, &sender_entry);
     }

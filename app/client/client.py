@@ -100,6 +100,9 @@ class Client:
         request.header.op_code = util.CONNECT
         request.header.username = str(user)
         request.item.listening_port = str(listening_port)
+        # create listening thread
+        receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
+        receiving_thread.start()
         # now, we connect to the socket
         sock = netUtil.connect_socket((Client._server, Client._port))
         if sock:
@@ -116,8 +119,7 @@ class Client:
                 # if the connection was performed successfully, update the current user and listen
                 Client._connected_user = str(user)
                 Client._listening_port = listening_port
-                Client._receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
-                Client._receiving_thread.start()
+                Client._receiving_thread = receiving_thread
                 return None
             elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
                 print("CONNECT FAIL, USER DOES NOT EXIST")
@@ -127,7 +129,15 @@ class Client:
                 print("CONNECT FAIL")
 
             # if CONNECT operation has failed, close the created socket
-            listen_sock.close()
+            # end listening thread
+            # prepare request
+            request_end_thread = util.Request()
+            request_end_thread.header.op_code = util.END_LISTEN_THREAD
+            # connect to listening thread
+            with netUtil.connect_socket((socket.gethostname(), listening_port)) as sock_listen_thread:
+                if sock_listen_thread:
+                    # send END_LISTEN_THREAD to receiving thread
+                    netUtil.send_header(sock_listen_thread, request)
 
     # *
     # * @param user - User name to disconnect from the system
