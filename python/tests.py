@@ -18,11 +18,24 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(True, True)  # add assertion here
 
-    def test_register(self):
+    # register new user a
+    def test_register_a(self):
         self.assertEqual(client_a.register("a"), util.EC.SUCCESS.value)
 
-    def test_unregister(self):
-        self.assertEqual(client_a.unregister("a"), util.EC.SUCCESS.value)
+    # register new user b
+    def test_register_b(self):
+        self.assertEqual(client_b.register("b"), util.EC.SUCCESS.value)
+
+    # register the same user as before, a
+    def test_register_registered_user(self):
+        self.assertEqual(client_a.register("a"), util.EC.REGISTER_USR_ALREADY_REG.value)
+
+    # unregister non existing user
+    def test_unregister_c(self):
+        self.assertEqual(client_a.unregister("c"), util.EC.UNREGISTER_USR_NOT_EXISTS.value)
+
+    def test_connect_a(self):
+        self.assertEqual(client_a.connect("a"), util.EC.SUCCESS.value)
 
 
 if __name__ == '__main__':
