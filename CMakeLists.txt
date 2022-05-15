@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(DS-Lab-Assignment
-        VERSION 0.1
+        VERSION 0.9
         DESCRIPTION "Main Lab Assignment"
         LANGUAGES C CXX
         )
@@ -26,12 +26,3 @@ add_subdirectory(src)
 
 # executable code
 add_subdirectory(app)
-
-# testing available only if this is the main app and explicitly required
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND TESTING STREQUAL "ON")
-#    enable_testing()
-##   GoogleTest framework
-#    add_subdirectory(extern/googletest)
-#   unittest code
-    add_subdirectory(test)
-endif()
