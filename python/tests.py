@@ -3,7 +3,6 @@ import os
 from client import Client
 from src import util
 
-
 class MyTestCase(unittest.TestCase):
     def test_init(self):
         client_a.server = os.getenv("SERVER_IP")
@@ -11,8 +10,8 @@ class MyTestCase(unittest.TestCase):
         print(f"{client_a.server=}")
         print(f"{client_a.port=}")
 
-        client_b.server = os.getenv("SERVER_IP")
-        client_b.port = int(os.getenv("SERVER_PORT"))
+        client_b._server = os.getenv("SERVER_IP")
+        client_b._port = int(os.getenv("SERVER_PORT"))
         print(f"{client_b.server=}")
         print(f"{client_b.port=}")
 
@@ -30,12 +29,19 @@ class MyTestCase(unittest.TestCase):
     def test_register_registered_user(self):
         self.assertEqual(client_a.register("a"), util.EC.REGISTER_USR_ALREADY_REG.value)
 
-    # unregister non existing user
+    # unregister non existing user, c
     def test_unregister_c(self):
         self.assertEqual(client_a.unregister("c"), util.EC.UNREGISTER_USR_NOT_EXISTS.value)
 
+    # connect a registered user, a
     def test_connect_a(self):
-        self.assertEqual(client_a.connect("a"), util.EC.SUCCESS.value)
+        client_a.server = os.getenv("SERVER_IP")
+        client_a.port = int(os.getenv("SERVER_PORT"))
+        self.assertEqual(client_a.connect('a'), util.EC.SUCCESS.value)
+
+
+
+
 
 
 if __name__ == '__main__':

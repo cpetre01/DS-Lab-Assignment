@@ -97,6 +97,7 @@ class Client:
             print("UNREGISTER FAIL")
 
         return reply.server_error_code
+
     # *
     # * @param user - User name to connect to the system
     # *
@@ -196,6 +197,7 @@ class Client:
             print("DISCONNECT FAIL")
 
         return reply.server_error_code
+
     # *
     # * @param recipient - Recipient user name
     # * @param message - Message to be sent

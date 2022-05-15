@@ -6,6 +6,6 @@ export SERVER_PORT=$2
 
 cd build
 app/server -p $SERVER_PORT &
-python ../python/serverWS.py &
+python ../python/serverWS.py -d &
 python ../python/tests.py
 pkill -SIGINT '^server$'

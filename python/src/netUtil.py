@@ -11,7 +11,6 @@ def connect_socket(server_address: tuple):
     """Function in charge of connecting to the server socket"""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # print(f"connecting to {server_address[0]} port {server_address[1]}")
         sock.connect(server_address)
         return sock
     except socket.error as ex:
