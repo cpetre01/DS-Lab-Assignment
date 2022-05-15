@@ -108,7 +108,7 @@ class Client:
     def connect(self, user):
         if self._connected_user and user != self._connected_user:
             print(f"Please disconnect '{self._connected_user}' user first")
-            return None
+            return util.EC.CONNECT_DIFF_USR_CN.value
         # first, we create the request
         request = util.Request()
         reply = util.Reply()
@@ -167,7 +167,7 @@ class Client:
     def disconnect(self, user):
         if self._connected_user and user != self._connected_user:
             print(f"Cannot disconnect '{user}' user: it is not connected on this session")
-            return None
+            return util.EC.DISCONNECT_DIFF_USR_CN.value
         # first, we create the request and reply
         request = util.Request()
         reply = util.Reply()
