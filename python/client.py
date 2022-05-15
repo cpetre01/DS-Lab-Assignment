@@ -40,7 +40,7 @@ class Client:
         request.header.op_code = util.REGISTER
         request.header.username = str(user)
         # now, we connect to the socket
-        with netUtil.connect_socket((self._server, self._port)) as sock:
+        with netUtil.connect_socket((self.server, self.port)) as sock:
             if sock:
                 # and send te registration request
                 netUtil.send_header(sock, request)
@@ -74,7 +74,7 @@ class Client:
         request.header._op_code = util.UNREGISTER
         request.header._username = str(user)
         # now, we connect to the socket
-        with netUtil.connect_socket((self._server, self._port)) as sock:
+        with netUtil.connect_socket((self.server, self.port)) as sock:
             if sock:
                 # and send te registration request
                 netUtil.send_header(sock, request)
@@ -126,7 +126,9 @@ class Client:
         receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
         receiving_thread.start()
         # now, we connect to the socket
-        with netUtil.connect_socket((self._server, self._port)) as sock:
+        print(f"{self.server=}")
+        print(f"{self.port=}")
+        with netUtil.connect_socket((self.server, self.port)) as sock:
             if sock:
                 # and send the connection request
                 netUtil.send_connection_request(sock, request)
@@ -143,7 +145,7 @@ class Client:
             self._connected_user = str(user)
             self._listening_port = listening_port
             self._receiving_thread = receiving_thread
-            return None
+            return reply.server_error_code
         elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
             print("CONNECT FAIL, USER DOES NOT EXIST")
         elif reply.server_error_code == util.EC.CONNECT_USR_ALREADY_CN.value:
@@ -173,7 +175,7 @@ class Client:
         request.header.op_code = util.DISCONNECT
         request.header.username = str(user)
         # now, we connect to the socket
-        with netUtil.connect_socket((self._server, self._port)) as sock:
+        with netUtil.connect_socket((self.server, self.port)) as sock:
             if sock:
                 # and send the registration request
                 netUtil.send_header(sock, request)
@@ -222,7 +224,7 @@ class Client:
             print("ERROR, MESSAGE TOO LONG")
         request.item.message = str(message)
         # now, we connect to the socket
-        with netUtil.connect_socket((self._server, self._port)) as sock:
+        with netUtil.connect_socket((self.server, self.port)) as sock:
             if sock:
                 # and send te message request
                 netUtil.send_message_request(sock, request)
@@ -321,8 +323,8 @@ class Client:
             parser.error("Error: Port must be in the range 1024 <= port <= 65535")
             return False
 
-        self._server = args.s
-        self._port = args.p
+        self.server = args.s
+        self.port = args.p
 
         return True
 
