@@ -223,14 +223,6 @@ class Client:
 
 
     @staticmethod
-    def testWebServices(message):
-        wsdl = 'http://localhost:8000/?wsdl'
-        client = zeep.Client(wsdl=wsdl)
-        print(client.service.remove(message))
-
-
-
-    @staticmethod
     def shell():
         """Simple Command Line Interface for the client. It calls the protocol functions."""
         while True:
@@ -275,6 +267,10 @@ class Client:
                         if len(line) >= 3:
                             #  Remove first two words
                             message = ' '.join(line[2:])
+                            # web services
+                            wsdl = 'http://localhost:8000/?wsdl'
+                            client = zeep.Client(wsdl=wsdl)
+                            message = client.service.remove(message)
                             Client.send(line[1], message)
                         else:
                             print("Syntax error. Usage: SEND <userName> <message>")
