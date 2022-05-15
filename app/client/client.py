@@ -18,78 +18,84 @@ class Client:
     # *
     # * @param user - User name to register in the system
     # *
-    # * @return OK if successful
-    # * @return USER_ERROR if the user is already registered
-    # * @return ERROR if another error occurred
+    # * @return EC.SUCCESS if successful
+    # * @return EC.REGISTER_USR_ALREADY_REG if the user is already registered
+    # * @return EC.REGISTER_ANY if another error occurred
     @staticmethod
     def register(user):
         # first, we create the request
         request = util.Request()
+        reply = util.Reply()
         # fill up the request
         request.header.op_code = util.REGISTER
         request.header.username = str(user)
         # now, we connect to the socket
-        sock = netUtil.connect_socket((Client._server, Client._port))
-        if sock:
-            # and send te registration request
-            netUtil.send_header(sock, request)
-            # receive server reply (error code)
-            reply = util.Reply()
-            reply.server_error_code = netUtil.receive_server_error_code(sock)
-            # close the socket
-            sock.close()
-            # print the corresponding error message
-            if reply.server_error_code == util.EC.SUCCESS.value:
-                print("REGISTER OK")
-            elif reply.server_error_code == util.EC.REGISTER_USR_ALREADY_REG.value:
-                print("USERNAME IN USE")
-            elif reply.server_error_code == util.EC.REGISTER_ANY.value:
-                print("REGISTRATION FAIL")
+        with netUtil.connect_socket((Client._server, Client._port)) as sock:
+            if sock:
+                # and send te registration request
+                netUtil.send_header(sock, request)
+                # receive server reply (error code)
+                reply.server_error_code = netUtil.receive_server_error_code(sock)
+            else:
+                # socket error
+                reply.server_error_code = util.EC.REGISTER_ANY.value
+
+        # print the corresponding error message
+        if reply.server_error_code == util.EC.SUCCESS.value:
+            print("REGISTER OK")
+        elif reply.server_error_code == util.EC.REGISTER_USR_ALREADY_REG.value:
+            print("USERNAME IN USE")
+        elif reply.server_error_code == util.EC.REGISTER_ANY.value:
+            print("REGISTRATION FAIL")
 
     # *
     # 	 * @param user - User name to unregister from the system
     # 	 *
-    # 	 * @return OK if successful
-    # 	 * @return USER_ERROR if the user does not exist
-    # 	 * @return ERROR if another error occurred
+    # 	 * @return EC.SUCCESS if successful
+    # 	 * @return EC.UNREGISTER_USR_NOT_EXISTS if the user does not exist
+    # 	 * @return EC.UNREGISTER_ANY if another error occurred
     @staticmethod
     def unregister(user):
         # first, we create the request
         request = util.Request()
+        reply = util.Reply()
         # fill up the request
         request.header._op_code = util.UNREGISTER
         request.header._username = str(user)
         # now, we connect to the socket
-        sock = netUtil.connect_socket((Client._server, Client._port))
-        if sock:
-            # and send te registration request
-            netUtil.send_header(sock, request)
-            # receive server reply (error code)
-            reply = util.Reply()
-            reply.server_error_code = netUtil.receive_server_error_code(sock)
-            # close the socket
-            sock.close()
-            # print the corresponding error message
-            if reply.server_error_code == util.EC.SUCCESS.value:
-                # if there is a connected user, disconnect it (kill the receiving thread)
-                if Client._connected_user:
-                    Client._connected_user = None
-                print("UNREGISTER OK")
-            elif reply.server_error_code == util.EC.UNREGISTER_USR_NOT_EXISTS.value:
-                print("USER DOES NOT EXIST")
-            elif reply.server_error_code == util.EC.UNREGISTER_ANY.value:
-                print("UNREGISTER FAIL")
+        with netUtil.connect_socket((Client._server, Client._port)) as sock:
+            if sock:
+                # and send te registration request
+                netUtil.send_header(sock, request)
+                # receive server reply (error code)
+                reply.server_error_code = netUtil.receive_server_error_code(sock)
+            else:
+                # socket error
+                reply.server_error_code = util.EC.UNREGISTER_ANY.value
+
+        # print the corresponding error message
+        if reply.server_error_code == util.EC.SUCCESS.value:
+            # if there is a connected user, disconnect it
+            if Client._connected_user:
+                Client.disconnect(user)
+            print("UNREGISTER OK")
+        elif reply.server_error_code == util.EC.UNREGISTER_USR_NOT_EXISTS.value:
+            print("USER DOES NOT EXIST")
+        elif reply.server_error_code == util.EC.UNREGISTER_ANY.value:
+            print("UNREGISTER FAIL")
 
     # *
     # * @param user - User name to connect to the system
     # *
-    # * @return OK if successful
-    # * @return USER_ERROR if the user does not exist or if it is already connected
-    # * @return ERROR if another error occurred
+    # * @return EC.SUCCESS if successful
+    # * @return EC.CONNECT_USR_NOT_EXISTS if the user does not exist
+    # * @return EC.CONNECT_USR_ALREADY_CN if the user is already connected
+    # * @return EC.CONNECT_ANY if another error occurred
     @staticmethod
     def connect(user):
         # first, we create the request
         request = util.Request()
+        reply = util.Reply()
         # now, create a socket and bind to port 0
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -104,31 +110,32 @@ class Client:
         receiving_thread = Thread(target=netUtil.listen_and_accept, args=(listen_sock,), daemon=True)
         receiving_thread.start()
         # now, we connect to the socket
-        sock = netUtil.connect_socket((Client._server, Client._port))
-        if sock:
-            # and send the connection request
-            netUtil.send_connection_request(sock, request)
-            # receive server reply (error code)
-            reply = util.Reply()
-            reply.server_error_code = netUtil.receive_server_error_code(sock)
-            # close the socket
-            sock.close()
-            # print the corresponding error message
-            if reply.server_error_code == util.EC.SUCCESS.value:
-                print("CONNECT OK")
-                # if the connection was performed successfully, update the current user and listen
-                Client._connected_user = str(user)
-                Client._listening_port = listening_port
-                Client._receiving_thread = receiving_thread
-                return None
-            elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
-                print("CONNECT FAIL, USER DOES NOT EXIST")
-            elif reply.server_error_code == util.EC.CONNECT_USR_ALREADY_CN.value:
-                print("USER ALREADY CONNECTED")
-            elif reply.server_error_code == util.EC.CONNECT_ANY.value:
-                print("CONNECT FAIL")
+        with netUtil.connect_socket((Client._server, Client._port)) as sock:
+            if sock:
+                # and send the connection request
+                netUtil.send_connection_request(sock, request)
+                # receive server reply (error code)
+                reply.server_error_code = netUtil.receive_server_error_code(sock)
+            else:
+                # socket error
+                reply.server_error_code = util.EC.CONNECT_ANY.value
 
-            # if CONNECT operation has failed, close the created socket
+        # print the corresponding error message
+        if reply.server_error_code == util.EC.SUCCESS.value:
+            print("CONNECT OK")
+            # if the connection was performed successfully, update the current user and listen
+            Client._connected_user = str(user)
+            Client._listening_port = listening_port
+            Client._receiving_thread = receiving_thread
+            return None
+        elif reply.server_error_code == util.EC.CONNECT_USR_NOT_EXISTS.value:
+            print("CONNECT FAIL, USER DOES NOT EXIST")
+        elif reply.server_error_code == util.EC.CONNECT_USR_ALREADY_CN.value:
+            print("USER ALREADY CONNECTED")
+        elif reply.server_error_code == util.EC.CONNECT_ANY.value:
+            print("CONNECT FAIL")
+
+        # if CONNECT operation has failed, close the created socket
             # end listening thread
             # prepare request
             request_end_thread = util.Request()
@@ -142,9 +149,10 @@ class Client:
     # *
     # * @param user - User name to disconnect from the system
     # *
-    # * @return OK if successful
-    # * @return USER_ERROR if the user does not exist
-    # * @return ERROR if another error occurred
+    # * @return EC.SUCCESS if successful
+    # * @return EC.DISCONNECT_USR_NOT_EXISTS if the user does not exist
+    # * @return EC.DISCONNECT_USR_NOT_CN if the user is not connected
+    # * @return EC.DISCONNECT_ANY if another error occurred
     @staticmethod
     def disconnect(user):
         # first, we create the request and reply
@@ -163,10 +171,10 @@ class Client:
             else:
                 # socket error
                 reply.server_error_code = util.EC.DISCONNECT_ANY.value
+
         # print the corresponding error message
         if reply.server_error_code == util.EC.SUCCESS.value:
             Client._connected_user = None
-
             # end listening thread
             # prepare request
             request_end_thread = util.Request()
@@ -185,17 +193,17 @@ class Client:
             print("DISCONNECT FAIL")
 
     # *
-    # * @param user    - Recipient user name
+    # * @param recipient - Recipient user name
     # * @param message - Message to be sent
     # *
-    # * @return OK if the server had successfully delivered the message
-    # * @return USER_ERROR if the user is not connected (the message is queued for delivery)
-    # * @return ERROR the user does not exist or another error occurred
-
+    # * @return EC.SUCCESS if the server had successfully delivered the message
+    # * @return EC.SEND_USR_NOT_EXISTS if the user does not exist
+    # * @return EC.SEND_ANY if another error occurred
     @staticmethod
     def send(recipient, message):
         # first, we create the request
         request = util.Request()
+        reply = util.Reply()
         # fill up the request
         request.header.op_code = util.SEND
         request.header.username = Client._connected_user
@@ -209,18 +217,20 @@ class Client:
                 # and send te message request
                 netUtil.send_message_request(sock, request)
                 # receive server reply (error code)
-                reply = util.Reply()
                 reply.server_error_code = netUtil.receive_server_error_code(sock)
-                # print the corresponding error message
-                if reply.server_error_code == util.EC.SUCCESS.value:
-                    # in case of success, return the corresponding message id
-                    message_id = netUtil.receive_string(sock)
-                    print(f"SEND OK - MESSAGE {message_id}")
-                elif reply.server_error_code == util.EC.SEND_USR_NOT_EXISTS.value:
-                    print("SEND FAIL / USER DOES NOT EXIST")
-                elif reply.server_error_code == util.EC.SEND_ANY.value:
-                    print("SEND FAIL")
+            else:
+                # socket error
+                reply.server_error_code = util.EC.SEND_ANY.value
 
+            # print the corresponding error message
+            if reply.server_error_code == util.EC.SUCCESS.value:
+                # in case of success, return the corresponding message id
+                message_id = netUtil.receive_string(sock)
+                print(f"SEND OK - MESSAGE {message_id}")
+            elif reply.server_error_code == util.EC.SEND_USR_NOT_EXISTS.value:
+                print("SEND FAIL / USER DOES NOT EXIST")
+            elif reply.server_error_code == util.EC.SEND_ANY.value:
+                print("SEND FAIL")
 
     @staticmethod
     def shell():
@@ -282,12 +292,6 @@ class Client:
                             break
                         else:
                             print("Syntax error. Use: QUIT")
-
-                    elif line[0] == "TEST":
-                        if len(line) == 2:
-                            Client.testWebServices(line[1])
-                        else:
-                            print("Syntax error. Use: TEST")
 
                     else:
                         print(f"Error: command {line[0]} not valid.")

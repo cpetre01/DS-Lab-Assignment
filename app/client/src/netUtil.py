@@ -5,9 +5,8 @@ to server socket, as well as connecting to the socket"""
 import socket
 from src import util
 
+
 # ******************** FUNCTIONS *********************
-
-
 def connect_socket(server_address: tuple):
     """Function in charge of connecting to the server socket"""
     try:
@@ -70,15 +69,18 @@ def receive_server_error_code(sock):
 def receive_string(sock):
     """Function in charge of receiving a string from a given socket"""
     string = ''
-    # we create a while loop in charge of receiving data from the socket
-    while True:
-        msg = sock.recv(1)
-        # when the \0 character is reached, the string has ended, so it stops receiving characters
-        if msg == b'\0':
-            break
-        # the received data is decoded and returned
-        string += msg.decode()
-    return string
+    try:
+        # we create a while loop in charge of receiving data from the socket
+        while True:
+            msg = sock.recv(1)
+            # when the \0 character is reached, the string has ended, so it stops receiving characters
+            if msg == b'\0':
+                break
+            # the received data is decoded and returned
+            string += msg.decode()
+        return string
+    except socket.error as ex:
+        print(f"receive_string fail: {ex}")
 
 
 def listen_and_accept(sock):

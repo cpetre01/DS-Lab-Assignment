@@ -7,6 +7,5 @@ tests
 #Bugs
 
 #Improvements
-lots of refactoring
 
 #Weird stuff

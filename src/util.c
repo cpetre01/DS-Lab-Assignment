@@ -13,7 +13,6 @@ int str_to_num(const char *const string, void *number, const char type) {
      * writes cast value to value pointer; this value pointer
      * should be a pointer to the desired number type.
      * Currently supported types: int, float ***/
-
     errno = 0;
     char *endptr;                   /* used for castings */
     char error[MAX_STR_SIZE];       /* used to display errors */

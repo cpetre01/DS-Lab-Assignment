@@ -19,7 +19,7 @@ int db_init_db(void) {
 
 
 int db_get_pend_msg(entry_t *entry) {
-    /*** Reads a pending message of a given username entry ***/
+    /*** Reads a pending message of a given user entry ***/
     int ret_val;    /* needed for error-checking macros */
     struct dirent *pend_msgs_entry;
     int pend_msgs_table_is_empty = TRUE;    /* assume that there are no pending messages */
